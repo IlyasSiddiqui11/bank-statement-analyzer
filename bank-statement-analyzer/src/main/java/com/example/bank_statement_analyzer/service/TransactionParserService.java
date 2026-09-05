@@ -81,6 +81,11 @@ public class TransactionParserService {
 
             return "CREDIT ADJUSTMENT";
         }
+        if (parts.length >= 5 &&
+                parts[0].equalsIgnoreCase("IMPS")) {
+
+            return parts[4].trim().toUpperCase();
+        }
         // Anything we don't recognize
         return "UNKNOWN";
     }
