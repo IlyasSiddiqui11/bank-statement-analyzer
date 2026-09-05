@@ -20,18 +20,17 @@ public class ExcelWriterService {
 
         Workbook workbook = new XSSFWorkbook();
 
-        // CREATE BOLD STYLE
+        // Create bold style
         Font boldFont = workbook.createFont();
         boldFont.setBold(true);
 
         CellStyle totalStyle = workbook.createCellStyle();
         totalStyle.setFont(boldFont);
 
-
-        // SUMMARY SHEET
+        // Create Summary sheet
         Sheet summarySheet = workbook.createSheet("Summary");
 
-        // TITLE
+        // Summary title
         Row titleRow = summarySheet.createRow(0);
 
         titleRow.createCell(0)
@@ -40,8 +39,7 @@ public class ExcelWriterService {
         titleRow.getCell(0)
                 .setCellStyle(totalStyle);
 
-
-        // SUMMARY HEADERS
+        // Summary headers
         Row summaryHeaderRow = summarySheet.createRow(2);
 
         summaryHeaderRow.createCell(0)
@@ -56,17 +54,14 @@ public class ExcelWriterService {
         summaryHeaderRow.createCell(4)
                 .setCellValue("AMOUNT");
 
-
         // Make summary headers bold
         for (int i : new int[]{0, 1, 3, 4}) {
-
             summaryHeaderRow
                     .getCell(i)
                     .setCellStyle(totalStyle);
         }
 
-
-        // TO / BY
+        // Create To and By labels
         Row sideRow = summarySheet.createRow(3);
 
         sideRow.createCell(0)
@@ -81,24 +76,22 @@ public class ExcelWriterService {
         sideRow.getCell(3)
                 .setCellStyle(totalStyle);
 
+        // Row numbers for Summary
+        int toRowNumber = 4;
+        int byRowNumber = 4;
 
-        // CREATE SHEET FOR EACH GROUP
+        // Create one sheet for each person, merchant or category
         for (Map.Entry<String, List<Transaction>> entry
                 : groupedTransactions.entrySet()) {
 
             String groupName = entry.getKey();
 
-            List<Transaction> transactions =
-                    entry.getValue();
+            List<Transaction> transactions = entry.getValue();
 
+            Sheet sheet = workbook.createSheet(groupName);
 
-            // CREATE SHEET
-            Sheet sheet =
-                    workbook.createSheet(groupName);
-
-            // HEADER ROW
-            Row headerRow =
-                    sheet.createRow(0);
+            // Header row
+            Row headerRow = sheet.createRow(0);
 
             headerRow.createCell(0)
                     .setCellValue("Tran Date");
@@ -118,37 +111,29 @@ public class ExcelWriterService {
             headerRow.createCell(5)
                     .setCellValue("Balance");
 
-
-            // Make header bold
+            // Make headers bold
             for (int i = 0; i < 6; i++) {
-
                 headerRow
                         .getCell(i)
                         .setCellStyle(totalStyle);
             }
 
-            // TRANSACTIONS
+            // Add transactions
             int rowNumber = 1;
 
             for (Transaction transaction : transactions) {
 
-                Row row =
-                        sheet.createRow(rowNumber++);
+                Row row = sheet.createRow(rowNumber++);
 
-
-                // DATE
+                // Date
                 if (transaction.getDate() != null) {
-
                     row.createCell(0)
                             .setCellValue(
-                                    transaction
-                                            .getDate()
-                                            .toString()
+                                    transaction.getDate().toString()
                             );
                 }
 
-
-                // CHEQUE NUMBER
+                // Cheque number
                 row.createCell(1)
                         .setCellValue(
                                 transaction.getChequeNumber() != null
@@ -156,8 +141,7 @@ public class ExcelWriterService {
                                         : ""
                         );
 
-
-                // PARTICULARS
+                // Particulars
                 row.createCell(2)
                         .setCellValue(
                                 transaction.getParticulars() != null
@@ -165,30 +149,24 @@ public class ExcelWriterService {
                                         : ""
                         );
 
-
-                // DEBIT
+                // Debit
                 if (transaction.getDebit() != null) {
-
                     row.createCell(3)
                             .setCellValue(
                                     transaction.getDebit()
                             );
                 }
 
-
-                // CREDIT
+                // Credit
                 if (transaction.getCredit() != null) {
-
                     row.createCell(4)
                             .setCellValue(
                                     transaction.getCredit()
                             );
                 }
 
-
-                // BALANCE
+                // Balance
                 if (transaction.getBalance() != null) {
-
                     row.createCell(5)
                             .setCellValue(
                                     transaction.getBalance()
@@ -196,29 +174,48 @@ public class ExcelWriterService {
                 }
             }
 
-
-            // CALCULATE TOTALS
+            // Calculate totals
             double totalDebit = 0;
-
             double totalCredit = 0;
-
 
             for (Transaction transaction : transactions) {
 
                 if (transaction.getDebit() != null) {
-
-                    totalDebit +=
-                            transaction.getDebit();
+                    totalDebit += transaction.getDebit();
                 }
 
                 if (transaction.getCredit() != null) {
-
-                    totalCredit +=
-                            transaction.getCredit();
+                    totalCredit += transaction.getCredit();
                 }
             }
 
-            // TOTAL DEBIT
+            // Add credit to To side of Summary
+            if (totalCredit > 0) {
+
+                Row summaryRow =
+                        summarySheet.createRow(toRowNumber++);
+
+                summaryRow.createCell(0)
+                        .setCellValue(groupName);
+
+                summaryRow.createCell(1)
+                        .setCellValue(totalCredit);
+            }
+
+            // Add debit to By side of Summary
+            if (totalDebit > 0) {
+
+                Row summaryRow =
+                        summarySheet.createRow(byRowNumber++);
+
+                summaryRow.createCell(3)
+                        .setCellValue(groupName);
+
+                summaryRow.createCell(4)
+                        .setCellValue(totalDebit);
+            }
+
+            // Total debit on group sheet
             Row debitTotalRow =
                     sheet.createRow(rowNumber + 1);
 
@@ -234,8 +231,7 @@ public class ExcelWriterService {
             debitTotalRow.getCell(3)
                     .setCellStyle(totalStyle);
 
-
-            // TOTAL CREDIT
+            // Total credit on group sheet
             Row creditTotalRow =
                     sheet.createRow(rowNumber + 2);
 
@@ -251,21 +247,18 @@ public class ExcelWriterService {
             creditTotalRow.getCell(4)
                     .setCellStyle(totalStyle);
 
-            // AUTO SIZE COLUMNS
+            // Auto size group sheet columns
             for (int i = 0; i < 6; i++) {
-
                 sheet.autoSizeColumn(i);
             }
         }
 
-
-        // AUTO SIZE SUMMARY COLUMNS
+        // Auto size Summary sheet columns
         summarySheet.autoSizeColumn(0);
         summarySheet.autoSizeColumn(1);
         summarySheet.autoSizeColumn(3);
         summarySheet.autoSizeColumn(4);
 
-        // RETURN WORKBOOK
         return workbook;
     }
 }
