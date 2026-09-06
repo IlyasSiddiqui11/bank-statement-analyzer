@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/excel")
 public class ExcelReaderController {
@@ -77,7 +78,7 @@ public class ExcelReaderController {
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=Organized_Statement.xlsx"
+                        "attachment; filename=\"Organized_Statement.xlsx\""
                 )
                 .header(
                         HttpHeaders.CONTENT_TYPE,
