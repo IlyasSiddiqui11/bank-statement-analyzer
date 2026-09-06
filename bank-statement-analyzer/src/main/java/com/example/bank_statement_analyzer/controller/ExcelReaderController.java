@@ -6,13 +6,13 @@ import com.example.bank_statement_analyzer.service.ExcelWriterService;
 import com.example.bank_statement_analyzer.service.TransactionGroupingService;
 import com.example.bank_statement_analyzer.service.TransactionParserService;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.http.HttpHeaders;
-import java.io.ByteArrayOutputStream;
-import org.springframework.http.ResponseEntity;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -42,15 +42,20 @@ public class ExcelReaderController {
             value = "/read",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<byte[]> readExcel(@RequestPart("file") MultipartFile file) throws IOException {
+    public ResponseEntity<byte[]> readExcel(
+            @RequestPart("file") MultipartFile file) throws IOException {
 
-        List<Transaction> transactions = excelReader.readExcel(file);
+        List<Transaction> transactions =
+                excelReader.readExcel(file);
 
         Map<String, List<Transaction>> groupedTransactions =
                 transactionGrouping.groupTransactions(transactions);
 
         Workbook workbook =
-                excelWriter.createWorkbook(groupedTransactions);
+                excelWriter.createWorkbook(
+                        transactions,
+                        groupedTransactions
+                );
 
         ByteArrayOutputStream outputStream =
                 new ByteArrayOutputStream();
@@ -73,14 +78,12 @@ public class ExcelReaderController {
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"Organized_Statement.xlsx\""
+                        "attachment; filename=Organized_Statement.xlsx"
                 )
-                .contentType(
-                        MediaType.parseMediaType(
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
+                .header(
+                        HttpHeaders.CONTENT_TYPE,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-                .contentLength(excelFile.length)
                 .body(excelFile);
     }
 }
