@@ -24,8 +24,39 @@ public class ExcelReaderService {
 
         Sheet sheet = workbook.getSheetAt(0);
 
+        Row headerRow = sheet.getRow(0);
+
+        if (headerRow == null) {
+            workbook.close();
+            throw new IllegalArgumentException("Invalid Excel format: Header row is missing.");
+        }
+
+        String[] expectedHeaders = {
+                "Tran Date",
+                "Chq No",
+                "Particulars",
+                "Debit",
+                "Credit",
+                "Balance"
+        };
+
+        for (int i = 0; i < expectedHeaders.length; i++) {
+
+            String actualHeader = getStringValue(headerRow.getCell(i));
+
+            if (!expectedHeaders[i].equalsIgnoreCase(actualHeader)) {
+                workbook.close();
+                throw new IllegalArgumentException(
+                        "Invalid Excel format: Expected '" +
+                                expectedHeaders[i] +
+                                "' in column " +
+                                (i + 1)
+                );
+            }
+        }
+
         // Skip header row
-        for (int i = 2; i <= sheet.getLastRowNum(); i++) {
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
 
             Row row = sheet.getRow(i);
 
