@@ -53,7 +53,6 @@ public class ExcelReaderController {
 
         Workbook workbook =
                 excelWriter.createWorkbook(
-                        transactions,
                         groupedTransactions
                 );
 

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -12,7 +13,9 @@ public class TransactionGroupingService {
 
     private final TransactionParserService transactionParser;
 
-    public TransactionGroupingService(TransactionParserService transactionParser) {
+    public TransactionGroupingService(
+            TransactionParserService transactionParser) {
+
         this.transactionParser = transactionParser;
     }
 
@@ -24,7 +27,9 @@ public class TransactionGroupingService {
                         transaction ->
                                 transactionParser.extractName(
                                         transaction.getParticulars()
-                                )
+                                ),
+                        TreeMap::new,
+                        Collectors.toList()
                 ));
     }
 }

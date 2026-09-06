@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +17,6 @@ import java.util.Map;
 public class ExcelWriterService {
 
     public Workbook createWorkbook(
-            List<Transaction> transactions,
             Map<String, List<Transaction>> groupedTransactions) {
 
         Workbook workbook = new XSSFWorkbook();
@@ -71,61 +71,48 @@ public class ExcelWriterService {
         sideRow.getCell(3)
                 .setCellStyle(totalStyle);
 
-        int toRowNumber = 4;
-        int byRowNumber = 4;
-
-        // Calculate opening balance
-
-        double openingBalance = 0;
-
-        if (!transactions.isEmpty()) {
-
-            Transaction firstTransaction = transactions.get(0);
-
-            double firstBalance =
-                    firstTransaction.getBalance() != null
-                            ? firstTransaction.getBalance()
-                            : 0;
-
-            double firstCredit =
-                    firstTransaction.getCredit() != null
-                            ? firstTransaction.getCredit()
-                            : 0;
-
-            double firstDebit =
-                    firstTransaction.getDebit() != null
-                            ? firstTransaction.getDebit()
-                            : 0;
-
-            openingBalance =
-                    firstBalance
-                            - firstCredit
-                            + firstDebit;
-        }
-
-        // Add opening balance to To side
-
-        if (openingBalance != 0) {
-
-            Row openingBalanceRow =
-                    summarySheet.createRow(toRowNumber++);
-
-            openingBalanceRow.createCell(0)
-                    .setCellValue("Opening Balance");
-
-            openingBalanceRow.createCell(1)
-                    .setCellValue(openingBalance);
-        }
-
-        // Create one sheet for each person, merchant or category
+        List<SummaryEntry> toEntries = new ArrayList<>();
+        List<SummaryEntry> byEntries = new ArrayList<>();
 
         for (Map.Entry<String, List<Transaction>> entry
                 : groupedTransactions.entrySet()) {
 
             String groupName = entry.getKey();
 
-            List<Transaction> groupTransactions =
+            List<Transaction> transactions =
                     entry.getValue();
+
+            double totalDebit = 0;
+            double totalCredit = 0;
+
+            for (Transaction transaction : transactions) {
+
+                if (transaction.getDebit() != null) {
+                    totalDebit += transaction.getDebit();
+                }
+
+                if (transaction.getCredit() != null) {
+                    totalCredit += transaction.getCredit();
+                }
+            }
+
+            if (totalCredit > 0) {
+                toEntries.add(
+                        new SummaryEntry(
+                                groupName,
+                                totalCredit
+                        )
+                );
+            }
+
+            if (totalDebit > 0) {
+                byEntries.add(
+                        new SummaryEntry(
+                                groupName,
+                                totalDebit
+                        )
+                );
+            }
 
             Sheet sheet =
                     workbook.createSheet(groupName);
@@ -158,7 +145,7 @@ public class ExcelWriterService {
 
             int rowNumber = 1;
 
-            for (Transaction transaction : groupTransactions) {
+            for (Transaction transaction : transactions) {
 
                 Row row = sheet.createRow(rowNumber++);
 
@@ -185,56 +172,24 @@ public class ExcelWriterService {
 
                 if (transaction.getDebit() != null) {
                     row.createCell(3)
-                            .setCellValue(transaction.getDebit());
+                            .setCellValue(
+                                    transaction.getDebit()
+                            );
                 }
 
                 if (transaction.getCredit() != null) {
                     row.createCell(4)
-                            .setCellValue(transaction.getCredit());
+                            .setCellValue(
+                                    transaction.getCredit()
+                            );
                 }
 
                 if (transaction.getBalance() != null) {
                     row.createCell(5)
-                            .setCellValue(transaction.getBalance());
+                            .setCellValue(
+                                    transaction.getBalance()
+                            );
                 }
-            }
-
-            double totalDebit = 0;
-            double totalCredit = 0;
-
-            for (Transaction transaction : groupTransactions) {
-
-                if (transaction.getDebit() != null) {
-                    totalDebit += transaction.getDebit();
-                }
-
-                if (transaction.getCredit() != null) {
-                    totalCredit += transaction.getCredit();
-                }
-            }
-
-            if (totalCredit > 0) {
-
-                Row summaryRow =
-                        summarySheet.createRow(toRowNumber++);
-
-                summaryRow.createCell(0)
-                        .setCellValue(groupName);
-
-                summaryRow.createCell(1)
-                        .setCellValue(totalCredit);
-            }
-
-            if (totalDebit > 0) {
-
-                Row summaryRow =
-                        summarySheet.createRow(byRowNumber++);
-
-                summaryRow.createCell(3)
-                        .setCellValue(groupName);
-
-                summaryRow.createCell(4)
-                        .setCellValue(totalDebit);
             }
 
             Row debitTotalRow =
@@ -272,11 +227,78 @@ public class ExcelWriterService {
             }
         }
 
+        int summaryDataRow = 4;
+
+        int maxRows = Math.max(
+                toEntries.size(),
+                byEntries.size()
+        );
+
+        for (int i = 0; i < maxRows; i++) {
+
+            Row row =
+                    summarySheet.createRow(summaryDataRow++);
+
+            if (i < toEntries.size()) {
+
+                SummaryEntry toEntry =
+                        toEntries.get(i);
+
+                row.createCell(0)
+                        .setCellValue(
+                                toEntry.getParticular()
+                        );
+
+                row.createCell(1)
+                        .setCellValue(
+                                toEntry.getAmount()
+                        );
+            }
+
+            if (i < byEntries.size()) {
+
+                SummaryEntry byEntry =
+                        byEntries.get(i);
+
+                row.createCell(3)
+                        .setCellValue(
+                                byEntry.getParticular()
+                        );
+
+                row.createCell(4)
+                        .setCellValue(
+                                byEntry.getAmount()
+                        );
+            }
+        }
+
         summarySheet.autoSizeColumn(0);
         summarySheet.autoSizeColumn(1);
         summarySheet.autoSizeColumn(3);
         summarySheet.autoSizeColumn(4);
 
         return workbook;
+    }
+
+    private static class SummaryEntry {
+
+        private final String particular;
+        private final double amount;
+
+        public SummaryEntry(
+                String particular,
+                double amount) {
+
+            this.particular = particular;
+            this.amount = amount;
+        }
+
+        public String getParticular() {
+            return particular;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
     }
 }
