@@ -408,6 +408,3 @@ Download
 ```
 
 The application focuses on automating the repetitive work of identifying, grouping, and organizing transactions while keeping the final output in a familiar Excel format.
-
-```
-```
