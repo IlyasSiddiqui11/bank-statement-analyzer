@@ -86,4 +86,30 @@ public class ExcelReaderController {
                 )
                 .body(excelFile);
     }
+
+    @PostMapping(
+            value = "/quote",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<Map<String, Object>> getQuote(
+                @RequestPart("file") MultipartFile file) throws IOException {
+
+        List<Transaction> transactions =
+                excelReader.readExcel(file);
+
+        int transactionCount = transactions.size();
+
+        double pricePerTransaction = 0.50;
+
+        double totalAmount =
+                transactionCount * pricePerTransaction;
+
+        Map<String, Object> response = Map.of(
+                "transactionCount", transactionCount,
+                "pricePerTransaction", pricePerTransaction,
+                "totalAmount", totalAmount
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }
