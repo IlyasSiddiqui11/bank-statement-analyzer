@@ -1,4 +1,4 @@
-````markdown
+
 # Bank Statement Analyzer
 
 A web-based application designed to automatically parse, classify, and organize bank statement Excel spreadsheets into structured multi-sheet Excel workbooks grouped by entities, merchants, and transaction categories.
