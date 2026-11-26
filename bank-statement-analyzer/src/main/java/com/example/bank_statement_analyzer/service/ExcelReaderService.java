@@ -18,66 +18,58 @@ public class ExcelReaderService {
 
         List<Transaction> transactions = new ArrayList<>();
 
-        InputStream inputStream = file.getInputStream();
-
-        Workbook workbook = WorkbookFactory.create(inputStream);
-
-        Sheet sheet = workbook.getSheetAt(0);
-
-        Row headerRow = sheet.getRow(0);
-
-        if (headerRow == null) {
-            workbook.close();
-            throw new IllegalArgumentException("Invalid Excel format: Header row is missing.");
-        }
-
-        String[] expectedHeaders = {
-                "Tran Date",
-                "Chq No",
-                "Particulars",
-                "Debit",
-                "Credit",
-                "Balance"
-        };
-
-        for (int i = 0; i < expectedHeaders.length; i++) {
-
-            String actualHeader = getStringValue(headerRow.getCell(i));
-
-            if (!expectedHeaders[i].equalsIgnoreCase(actualHeader)) {
-                workbook.close();
-                throw new IllegalArgumentException(
-                        "Invalid Excel format: Expected '" +
-                                expectedHeaders[i] +
-                                "' in column " +
-                                (i + 1)
-                );
-            }
-        }
-
-        // Skip header row
-        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-
-            Row row = sheet.getRow(i);
-
-            if (row == null) {
-                continue;
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(inputStream)) {
+            if (workbook.getNumberOfSheets() == 0) {
+                throw new IllegalArgumentException("Invalid Excel format: The workbook has no sheets.");
             }
 
-            Transaction transaction = new Transaction();
+            Sheet sheet = workbook.getSheetAt(0);
+            Row headerRow = sheet.getRow(0);
 
-            transaction.setDate(getDate(row.getCell(0)));
-            transaction.setChequeNumber(getStringValue(row.getCell(1)));
-            transaction.setParticulars(getStringValue(row.getCell(2)));
-            transaction.setDebit(getDoubleValue(row.getCell(3)));
-            transaction.setCredit(getDoubleValue(row.getCell(4)));
-            transaction.setBalance(getDoubleValue(row.getCell(5)));
+            if (headerRow == null) {
+                throw new IllegalArgumentException("Invalid Excel format: Header row is missing.");
+            }
 
-            transactions.add(transaction);
+            String[] expectedHeaders = {
+                    "Tran Date",
+                    "Chq No",
+                    "Particulars",
+                    "Debit",
+                    "Credit",
+                    "Balance"
+            };
+
+            for (int i = 0; i < expectedHeaders.length; i++) {
+                String actualHeader = getStringValue(headerRow.getCell(i));
+                if (!expectedHeaders[i].equalsIgnoreCase(actualHeader)) {
+                    throw new IllegalArgumentException(
+                            "Invalid Excel format: Expected '" + expectedHeaders[i] +
+                                    "' in column " + (i + 1));
+                }
+            }
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    continue;
+                }
+
+                Transaction transaction = new Transaction();
+                transaction.setDate(getDate(row.getCell(0)));
+                transaction.setChequeNumber(getStringValue(row.getCell(1)));
+                transaction.setParticulars(getStringValue(row.getCell(2)));
+                transaction.setDebit(getDoubleValue(row.getCell(3)));
+                transaction.setCredit(getDoubleValue(row.getCell(4)));
+                transaction.setBalance(getDoubleValue(row.getCell(5)));
+
+                if (transaction.getParticulars() != null
+                        && !transaction.getParticulars().isBlank()
+                        && (transaction.getDebit() != null || transaction.getCredit() != null)) {
+                    transactions.add(transaction);
+                }
+            }
         }
-
-        workbook.close();
-
         return transactions;
     }
 
