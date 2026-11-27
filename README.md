@@ -324,7 +324,7 @@ npm run dev
 
 The Vite development server runs on `http://localhost:3000` and proxies `/api` requests to `http://localhost:8080`.
 
-Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` and `FRONTEND_ORIGIN` in the backend `.env` file. `.env` is ignored by Git. Never put database or Razorpay secret values in a frontend variable.
+Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET` in the backend `.env` file. `.env` is ignored by Git. Never put database or Razorpay secret values in a frontend variable. Production CORS is configured for `https://banklens-ztge.onrender.com`.
 
 ## Render Deployment Checklist
 
@@ -333,7 +333,7 @@ Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`,
 - Root directory: `bank-statement-analyzer`
 - Build command: `./mvnw clean package`
 - Start command: `java -jar target/bank-statement-analyzer-0.0.1-SNAPSHOT.jar`
-- Environment: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, and `FRONTEND_ORIGIN`.
+- Environment: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`.
 - Use Razorpay **Test Mode** key pairs for testing. Switch to Live Mode only after reviewing the live-account setup, webhook/capture settings, session persistence, and payment reconciliation.
 
 ### Frontend Static Site
@@ -341,7 +341,7 @@ Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`,
 - Root directory: `frontend`
 - Build command: `npm ci && npm run build`
 - Publish directory: `dist`
-- Build environment variable: `VITE_API_BASE_URL` set to the backend's public base URL, with no trailing slash.
+- `VITE_API_BASE_URL` defaults to `https://bank-lens-backend.onrender.com`; set it as a build environment variable only when using a different backend URL.
 
 The backend persists sessions and payments in PostgreSQL and uses the Razorpay payment API for capture verification. Configure the Razorpay webhook for the `/api/webhooks/razorpay` endpoint; verify its separate webhook secret and required Razorpay event delivery before live use.
 

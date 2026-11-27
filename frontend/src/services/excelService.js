@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  || (import.meta.env.PROD ? 'https://bank-lens-backend.onrender.com' : '');
 const EXCEL_API = `${API_BASE_URL}/api/excel`;
 const PAYMENT_API = `${API_BASE_URL}/api/payment`;
 const WORKBOOK_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
