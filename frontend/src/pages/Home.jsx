@@ -199,7 +199,9 @@ export default function Home() {
                 <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start space-x-3 text-red-800 shadow-2xs">
                   <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div className="flex-1 text-sm">
-                    <p className="font-bold mb-1">Payment or processing needs attention</p>
+                    <p className="font-bold mb-1">
+                      {analysis ? 'Payment needs attention' : 'Excel upload failed'}
+                    </p>
                     <p className="text-red-700">{errorMessage}</p>
                     {pendingVerification && (
                       <button

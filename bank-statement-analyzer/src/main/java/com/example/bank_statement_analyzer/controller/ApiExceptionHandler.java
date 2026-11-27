@@ -21,7 +21,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleInvalidInput() {
         return ResponseEntity.badRequest()
-                .body(Map.of("error", "The workbook contains invalid data or does not match the required format."));
+                .body(Map.of("error", "Could not read the workbook. Confirm it is a valid, unencrypted .xlsx file."));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

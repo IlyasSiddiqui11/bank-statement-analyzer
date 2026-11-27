@@ -18,7 +18,7 @@ export default function ExcelFormatPreview() {
         </div>
         <h2 className="text-2xl font-bold text-[#1F2937]">Supported Spreadsheet Format</h2>
         <p className="text-gray-500 text-sm mt-1">
-          Your transaction spreadsheet must contain the six columns shown below:
+          Your transaction spreadsheet must contain exactly these six columns in this order:
         </p>
       </div>
 
@@ -46,12 +46,12 @@ export default function ExcelFormatPreview() {
               <tr className="bg-[#DCFCE7]/60 text-[#15803D] border-b border-emerald-200 font-sans">
                 <th className="py-3 px-4 font-bold border-r border-emerald-200/50">
                   <div className="flex items-center space-x-1">
-                    <span>Tran Date</span>
+                    <span>Date</span>
                   </div>
                 </th>
                 <th className="py-3 px-4 font-bold border-r border-emerald-200/50">
                   <div className="flex items-center space-x-1">
-                    <span>Chq No</span>
+                    <span>Check Number</span>
                   </div>
                 </th>
                 <th className="py-3 px-4 font-bold border-r border-emerald-200/50">
@@ -93,7 +93,7 @@ export default function ExcelFormatPreview() {
       </div>
 
       <p className="text-center text-xs text-gray-500 mt-4">
-        Please upload an Excel file matching the format shown above.
+        Do not add, remove, rename, or reorder these columns.
       </p>
     </section>
   );

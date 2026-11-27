@@ -1,6 +1,7 @@
 package com.example.bank_statement_analyzer.service;
 
 import com.example.bank_statement_analyzer.model.Transaction;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -22,10 +23,18 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TransactionClassificationPipelineTest {
+
+    private static final String[] REQUIRED_HEADERS = {
+            "Date", "Check Number", "Particulars", "Debit", "Credit", "Balance"
+    };
+    private static final String INVALID_HEADER_MESSAGE =
+            "Invalid Excel format. Please arrange your columns in this exact order: " +
+                    "Date, Check Number, Particulars, Debit, Credit, Balance.";
 
     private final TransactionParserService parser = new TransactionParserService();
 
@@ -56,67 +65,70 @@ class TransactionClassificationPipelineTest {
     }
 
     @Test
-    void readsTransactionColumnsByHeaderWhenWorkbookContainsAnIndexColumn() throws Exception {
-        byte[] sourceWorkbook;
-        try (Workbook workbook = new XSSFWorkbook();
-             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Table 1");
-            Row header = sheet.createRow(0);
-            String[] headers = {"index", "Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance"};
-            for (int column = 0; column < headers.length; column++) {
-                header.createCell(column).setCellValue(headers[column]);
-            }
+    void acceptsExactHeadersBlankOptionalCellsAndLeadingBlankRows() throws Exception {
+        List<Transaction> transactions = new ExcelReaderService().readExcel(
+                createUpload(createStatementWorkbook(REQUIRED_HEADERS, true, false, false)));
+        assertEquals(2, transactions.size());
+        Transaction credit = transactions.get(0);
+        assertEquals(LocalDate.of(2025, 4, 1), credit.getDate());
+        assertNull(credit.getChequeNumber());
+        assertEquals(465.0, credit.getCredit());
+        assertNull(credit.getDebit());
 
-            Row transaction = sheet.createRow(1);
-            transaction.createCell(0).setCellValue(0);
-            var dateCell = transaction.createCell(1);
-            dateCell.setCellValue(java.sql.Date.valueOf(LocalDate.of(2025, 4, 1)));
-            CellStyle dateStyle = workbook.createCellStyle();
-            dateStyle.setDataFormat(workbook.getCreationHelper().createDataFormat().getFormat("yyyy-mm-dd"));
-            dateCell.setCellStyle(dateStyle);
-            transaction.createCell(2).setCellValue("");
-            transaction.createCell(3).setCellValue("UPI/P2M/123/SHOP/UPI/BANK");
-            transaction.createCell(4).setCellValue(189.45);
-            transaction.createCell(6).setCellValue(31306.40);
-
-            workbook.write(output);
-            sourceWorkbook = output.toByteArray();
-        }
-
-        List<Transaction> transactions = new ExcelReaderService().readExcel(new MockMultipartFile(
-                "file",
-                "statement.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                sourceWorkbook));
-
-        assertEquals(1, transactions.size());
-        Transaction transaction = transactions.get(0);
-        assertEquals(LocalDate.of(2025, 4, 1), transaction.getDate());
-        assertEquals("UPI/P2M/123/SHOP/UPI/BANK", transaction.getParticulars());
-        assertEquals(189.45, transaction.getDebit());
-        assertEquals(31306.40, transaction.getBalance());
+        List<Transaction> debitTransactions = new ExcelReaderService().readExcel(
+                createUpload(createStatementWorkbook(REQUIRED_HEADERS, false, false, false)));
+        assertEquals(2, debitTransactions.size());
+        Transaction debit = debitTransactions.get(1);
+        assertEquals(189.45, debit.getDebit());
+        assertNull(debit.getCredit());
     }
 
     @Test
-    void rejectsTransactionColumnsWhenTheirRequiredSequenceIsChanged() throws Exception {
-        byte[] sourceWorkbook;
-        try (Workbook workbook = new XSSFWorkbook();
+    void acceptsTextDatesAndNumericStrings() throws Exception {
+        List<Transaction> transactions = new ExcelReaderService().readExcel(
+                createUpload(createStatementWorkbook(REQUIRED_HEADERS, false, true, true)));
+
+        assertEquals(2, transactions.size());
+        assertEquals(LocalDate.of(2025, 4, 1), transactions.get(0).getDate());
+        assertEquals(1465.0, transactions.get(0).getCredit());
+        assertEquals(189.45, transactions.get(1).getDebit());
+    }
+
+    @Test
+    void rejectsWrongMissingAdditionalAndRenamedHeadersWithSpecificMessage() throws Exception {
+        assertInvalidHeaders("Date", "Particulars", "Check Number", "Debit", "Credit", "Balance");
+        assertInvalidHeaders("Date", "Check Number", "Particulars", "Debit", "Credit");
+        assertInvalidHeaders("Date", "Check Number", "Particulars", "Debit", "Credit", "Balance", "Notes");
+        assertInvalidHeaders("Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
+        assertInvalidHeaders("index", "Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
+
+        byte[] sourceWorkbook = createStatementWorkbook(REQUIRED_HEADERS, false, false, false);
+        byte[] workbookWithExtraData;
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(sourceWorkbook));
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            Row header = workbook.createSheet("Table 1").createRow(0);
-            String[] headers = {"index", "Debit", "Tran Date", "Chq No", "Particulars", "Credit", "Balance"};
-            for (int column = 0; column < headers.length; column++) {
-                header.createCell(column).setCellValue(headers[column]);
-            }
+            workbook.getSheetAt(0).getRow(1).createCell(6).setCellValue("extra data");
             workbook.write(output);
-            sourceWorkbook = output.toByteArray();
+            workbookWithExtraData = output.toByteArray();
+        }
+        assertInvalidWorkbook(workbookWithExtraData);
+    }
+
+    @Test
+    void reportsTheRowAndColumnForInvalidNumericValues() throws Exception {
+        byte[] validWorkbook = createStatementWorkbook(REQUIRED_HEADERS, false, false, false);
+        byte[] invalidWorkbook;
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(validWorkbook));
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            workbook.getSheetAt(0).getRow(1).getCell(4).setCellValue("not a number");
+            workbook.write(output);
+            invalidWorkbook = output.toByteArray();
         }
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "statement.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                sourceWorkbook);
-        assertThrows(IllegalArgumentException.class, () -> new ExcelReaderService().readExcel(file));
+        WorkflowException exception = assertThrows(
+                WorkflowException.class,
+                () -> new ExcelReaderService().readExcel(createUpload(invalidWorkbook)));
+        assertEquals("Invalid Credit value at row 2. Enter a number or leave the cell blank.",
+                exception.getMessage());
     }
 
     @Test
@@ -228,6 +240,95 @@ class TransactionClassificationPipelineTest {
         return false;
     }
 
+    private static void assertInvalidHeaders(String... headers) throws Exception {
+        assertInvalidWorkbook(createHeaderOnlyWorkbook(headers));
+    }
+
+    private static void assertInvalidWorkbook(byte[] workbook) throws Exception {
+        WorkflowException exception = assertThrows(
+                WorkflowException.class,
+                () -> new ExcelReaderService().readExcel(createUpload(workbook)));
+        assertEquals(INVALID_HEADER_MESSAGE, exception.getMessage());
+    }
+
+    private static MockMultipartFile createUpload(byte[] workbook) {
+        return new MockMultipartFile(
+                "file",
+                "statement.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                workbook);
+    }
+
+    private static byte[] createHeaderOnlyWorkbook(String[] headers) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Row header = workbook.createSheet("Statement").createRow(0);
+            for (int column = 0; column < headers.length; column++) {
+                header.createCell(column).setCellValue(headers[column]);
+            }
+            workbook.write(output);
+            return output.toByteArray();
+        }
+    }
+
+    private static byte[] createStatementWorkbook(
+            String[] headers,
+            boolean leadingBlankRows,
+            boolean textDates,
+            boolean textAmounts) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Statement");
+            int headerRowIndex = leadingBlankRows ? 2 : 0;
+            Row header = sheet.createRow(headerRowIndex);
+            for (int column = 0; column < headers.length; column++) {
+                header.createCell(column).setCellValue(headers[column]);
+            }
+
+            CellStyle dateStyle = workbook.createCellStyle();
+            dateStyle.setDataFormat(workbook.getCreationHelper().createDataFormat().getFormat("dd-mm-yyyy"));
+            LocalDate date = LocalDate.of(2025, 4, 1);
+            String[] particulars = {
+                    "NEFT/TRANSFER/SHOP/UPI/BANK",
+                    "UPI/P2M/123/SHOP/UPI/BANK"
+            };
+            String[] debits = {null, "189.45"};
+            String[] credits = {textAmounts ? "1,465.00" : "465.00", null};
+            String[] balances = {"31495.85", "31306.40"};
+
+            for (int index = 0; index < particulars.length; index++) {
+                Row transaction = sheet.createRow(headerRowIndex + index + 1);
+                Cell dateCell = transaction.createCell(0);
+                if (textDates) {
+                    dateCell.setCellValue("01-04-2025");
+                } else {
+                    dateCell.setCellValue(java.sql.Date.valueOf(date.plusDays(index)));
+                    dateCell.setCellStyle(dateStyle);
+                }
+                transaction.createCell(1);
+                transaction.createCell(2).setCellValue(particulars[index]);
+                setAmountCell(transaction, 3, debits[index], textAmounts);
+                setAmountCell(transaction, 4, credits[index], textAmounts);
+                setAmountCell(transaction, 5, balances[index], textAmounts);
+            }
+
+            workbook.write(output);
+            return output.toByteArray();
+        }
+    }
+
+    private static void setAmountCell(Row row, int column, String amount, boolean textAmount) {
+        if (amount == null) {
+            return;
+        }
+        Cell cell = row.createCell(column);
+        if (textAmount) {
+            cell.setCellValue(amount);
+        } else {
+            cell.setCellValue(Double.parseDouble(amount));
+        }
+    }
+
     private static List<String> createHundredParticulars() {
         List<String> values = new ArrayList<>();
         String[] people = {"AMIT KUMAR", "NEHA PATEL", "RAHUL SHARMA"};
@@ -271,7 +372,7 @@ class TransactionClassificationPipelineTest {
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Statement");
             Row header = sheet.createRow(0);
-            String[] headers = {"Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance"};
+            String[] headers = REQUIRED_HEADERS;
             for (int index = 0; index < headers.length; index++) {
                 header.createCell(index).setCellValue(headers[index]);
             }
