@@ -17,12 +17,12 @@ export default function SuccessState({
       </div>
       <h2 className="text-2xl font-bold text-[#1F2937] mb-2">Payment verified</h2>
       <p className="text-gray-600 text-sm sm:text-base mb-6 max-w-md mx-auto">
-        Your payment was confirmed by the server. Your BankLens workbook is ready to download.
+        Your payment was confirmed by the server. Your processed BankLens workbook is ready to download.
       </p>
 
       <div className="bg-[#F7FAF8] border border-emerald-100 rounded-xl p-4 mb-6 text-left max-w-md mx-auto space-y-3">
         <div className="flex justify-between gap-4 text-sm">
-          <span className="text-gray-500">Transactions</span>
+          <span className="text-gray-500">Valid transaction rows</span>
           <strong>{transactionCount?.toLocaleString('en-IN')}</strong>
         </div>
         <div className="flex justify-between gap-4 text-sm">
@@ -53,7 +53,7 @@ export default function SuccessState({
         className="w-full max-w-md mx-auto mb-4 inline-flex items-center justify-center space-x-2 px-6 py-3 bg-[#16A34A] hover:bg-[#15803D] disabled:bg-gray-300 text-white font-semibold text-sm rounded-xl transition-colors"
       >
         {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-        <span>{isDownloading ? 'Preparing workbook…' : hasDownloaded ? 'Download again' : 'Download organized workbook'}</span>
+        <span>{isDownloading ? 'Preparing workbook…' : hasDownloaded ? 'Download again' : 'Download Your File'}</span>
       </button>
 
       <div>
@@ -63,7 +63,7 @@ export default function SuccessState({
           className="inline-flex items-center justify-center space-x-2 px-5 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm rounded-xl"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Analyze another statement</span>
+          <span>Process another spreadsheet</span>
         </button>
       </div>
     </section>

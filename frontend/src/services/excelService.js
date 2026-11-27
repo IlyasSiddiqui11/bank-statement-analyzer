@@ -27,7 +27,7 @@ export const analyzeStatement = async (file) => {
     const response = await axios.post(`${EXCEL_API}/analyze`, formData);
     return response.data;
   } catch (error) {
-    throw new Error(await getErrorMessage(error, 'Unable to analyze this statement. Please try again.'));
+    throw new Error(await getErrorMessage(error, 'Unable to process this spreadsheet. Please try again.'));
   }
 };
 

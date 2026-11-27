@@ -30,7 +30,7 @@ export default function Home() {
 
   const handleAnalyze = async () => {
     if (!file) {
-      setFileValidationError('Please select an Excel file before analyzing.');
+      setFileValidationError('Please select an Excel file before processing.');
       return;
     }
 
@@ -92,7 +92,7 @@ export default function Home() {
         amount: order.amountPaise,
         currency: order.currency,
         name: 'BankLens',
-        description: `${analysis.transactionCount} transactions`,
+        description: `${analysis.transactionCount} valid transaction rows`,
         order_id: order.orderId,
         handler: (response) => {
           checkoutResolved.current = true;
@@ -157,11 +157,11 @@ export default function Home() {
 
   const isProcessing = ['analyzing', 'paying', 'checkout', 'verifying', 'downloading'].includes(status);
   const processingMessage = {
-    analyzing: 'Checking the workbook and counting valid transactions.',
-    paying: 'Preparing your secure payment.',
+    analyzing: 'Checking the spreadsheet and counting valid transaction rows.',
+    paying: 'Preparing your payment checkout.',
     checkout: 'Complete payment in the Razorpay window.',
-    verifying: 'Confirming payment securely with the server.',
-    downloading: 'Preparing your organized workbook.',
+    verifying: 'Confirming your payment with the server.',
+    downloading: 'Preparing your processed workbook.',
   }[status];
 
   return (
@@ -172,13 +172,14 @@ export default function Home() {
         <div className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-[#DCFCE7] border border-emerald-200 rounded-full text-xs font-bold text-[#15803D] mb-4 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-[#16A34A]" />
-            <span>Simple · Secure · Pay per transaction</span>
+            <span>₹0.25 per valid transaction row</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1F2937] tracking-tight leading-tight mb-4">
-            BankLens
+            Organize Your Spreadsheet Data with Ease
           </h1>
           <p className="text-gray-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            Your Bank Statements, Organized. Upload an Excel statement, review the transaction-based price, and pay securely to download your structured workbook.
+            <span className="block font-semibold text-[#1F2937] mb-2">Your Data, Better Organized.</span>
+            BankLens is a simple spreadsheet-processing tool that organizes transaction records from supported Excel files into structured, downloadable workbooks.
           </p>
         </div>
 
@@ -221,15 +222,16 @@ export default function Home() {
 
               {analysis ? (
                 <section className="bg-white rounded-2xl border border-gray-200 shadow-md p-6 sm:p-8 max-w-2xl mx-auto">
-                  <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-2">Statement analyzed</p>
+                  <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-2">Your Processed Data</p>
                   <h2 className="text-xl font-bold break-all">{file?.name}</h2>
-                  <div className="mt-6 rounded-xl border border-emerald-100 bg-[#F7FAF8] p-5 space-y-3">
+                  <h3 className="mt-6 text-base font-semibold">Complete Your Payment</h3>
+                  <div className="mt-3 rounded-xl border border-emerald-100 bg-[#F7FAF8] p-5 space-y-3">
                     <div className="flex justify-between gap-4 text-sm">
-                      <span className="text-gray-600">Valid transactions</span>
+                      <span className="text-gray-600">Valid transaction rows</span>
                       <strong>{analysis.transactionCount.toLocaleString('en-IN')}</strong>
                     </div>
                     <div className="flex justify-between gap-4 text-sm">
-                      <span className="text-gray-600">Price per transaction</span>
+                      <span className="text-gray-600">Price per valid row</span>
                       <strong>{formatRupees(analysis.pricePerTransactionPaise)}</strong>
                     </div>
                     <div className="border-t border-emerald-100 pt-3 flex justify-between gap-4">
@@ -243,7 +245,7 @@ export default function Home() {
                     disabled={Boolean(pendingVerification)}
                     className="mt-6 w-full py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center space-x-2 bg-[#16A34A] hover:bg-[#15803D] disabled:bg-gray-300 text-white transition-colors"
                   >
-                    <span>{pendingVerification ? 'Verify your previous payment first' : 'Pay securely with Razorpay'}</span>
+                    <span>{pendingVerification ? 'Verify your previous payment first' : 'Continue to Razorpay checkout'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <p className="mt-4 text-xs text-center text-gray-500">
@@ -270,7 +272,7 @@ export default function Home() {
       <footer className="bg-white border-t border-gray-200 py-8 text-center mt-auto">
         <div className="max-w-5xl mx-auto px-4">
           <p className="text-sm font-semibold text-[#1F2937]">BankLens</p>
-          <p className="text-xs text-gray-500 mt-1">Your Bank Statements, Organized.</p>
+          <p className="text-xs text-gray-500 mt-1">Your Data, Better Organized.</p>
           <p className="text-xs text-gray-400 mt-4">
             &copy; 2026 BankLens. All rights reserved.
           </p>
