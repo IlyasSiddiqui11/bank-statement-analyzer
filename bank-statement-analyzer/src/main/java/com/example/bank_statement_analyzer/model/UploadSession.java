@@ -3,6 +3,8 @@ package com.example.bank_statement_analyzer.model;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "upload_sessions")
@@ -35,7 +37,7 @@ public class UploadSession {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(name = "workbook")
     private byte[] workbook;
 
