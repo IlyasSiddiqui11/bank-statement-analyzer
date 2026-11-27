@@ -6,19 +6,19 @@ export default function HowItWorks() {
     {
       step: '1',
       title: 'Upload',
-      description: 'Select your bank statement Excel file.',
+      description: 'Select an Excel file with the supported transaction layout.',
       icon: UploadCloud,
     },
     {
       step: '2',
-      title: 'Analyze',
-      description: 'Our system organizes your transactions automatically.',
+      title: 'Process',
+      description: 'The tool checks valid transaction rows and organizes the records.',
       icon: Cpu,
     },
     {
       step: '3',
       title: 'Download',
-      description: 'Download your organized Excel workbook.',
+      description: 'Complete payment, then download your processed workbook.',
       icon: Download,
     },
   ];
@@ -29,7 +29,7 @@ export default function HowItWorks() {
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">How It Works</h2>
           <p className="text-gray-500 text-sm sm:text-base mt-2">
-            Organize complex bank statements into structured sheets in 3 simple steps.
+            Organize transaction records from a supported Excel file in 3 simple steps.
           </p>
         </div>
 

@@ -14,11 +14,11 @@ export default function ExcelFormatPreview() {
       <div className="text-center mb-6">
         <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-semibold text-[#15803D] mb-2">
           <Info className="w-3.5 h-3.5" />
-          <span>Excel Template Guide</span>
+          <span>Spreadsheet Format Guide</span>
         </div>
-        <h2 className="text-2xl font-bold text-[#1F2937]">Required Excel Format</h2>
+        <h2 className="text-2xl font-bold text-[#1F2937]">Supported Spreadsheet Format</h2>
         <p className="text-gray-500 text-sm mt-1">
-          Your input bank statement spreadsheet should contain the exact 6 columns shown below:
+          Your transaction spreadsheet must contain the six columns shown below:
         </p>
       </div>
 
@@ -31,7 +31,7 @@ export default function ExcelFormatPreview() {
             <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
             <div className="w-3 h-3 rounded-full bg-green-400"></div>
             <span className="text-xs font-medium text-gray-500 ml-2 flex items-center gap-1">
-              <Table className="w-3.5 h-3.5 text-[#16A34A]" /> bank_statement_input.xlsx
+              <Table className="w-3.5 h-3.5 text-[#16A34A]" /> transaction_records.xlsx
             </span>
           </div>
           <span className="text-xs text-[#16A34A] font-semibold flex items-center gap-1 bg-[#DCFCE7] px-2.5 py-0.5 rounded-md">
