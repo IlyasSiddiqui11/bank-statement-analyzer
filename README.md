@@ -210,46 +210,16 @@ Each worksheet contains the original transaction details along with group-level 
 
 ---
 
-## 💰 Usage-Based Pricing
+## Payment and Pricing
 
-The application is being developed with a usage-based pricing model.
-
-The current development pricing is:
+The price is **₹0.25 (25 paise) per valid transaction row**. The backend parses the uploaded workbook, calculates the count and total in paise, creates the Razorpay order, verifies the Checkout signature, and checks that the payment is captured for the expected amount before returning a workbook.
 
 ```text
-₹0.50 per transaction
+Upload .xlsx → Analyze → Review quote → Razorpay Checkout
+             → Server verifies captured payment → Download workbook
 ```
 
-The backend calculates the transaction count and generates the processing amount.
-
-For example:
-
-```text
-931 transactions × ₹0.50
-= ₹465.50
-```
-
-The calculated amount comes from the backend rather than being trusted from the frontend.
-
-Payment integration is currently under development. The planned workflow is:
-
-```text
-Upload
-   ↓
-Analyze
-   ↓
-Calculate Transaction Count
-   ↓
-Generate Price
-   ↓
-Payment
-   ↓
-Verify Payment
-   ↓
-Process Statement
-   ↓
-Download Organized Excel
-```
+The legacy `/api/excel/read` free-download endpoint is disabled. A payment session is tied to one analyzed statement and expires after 30 minutes. The workbook is redeemed once after successful captured-payment verification.
 
 ---
 
@@ -331,13 +301,49 @@ Generates the final workbook containing the Summary sheet and individual transac
 
 ---
 
-## 🔐 Data Handling
+## Data Handling and Session Limitations
 
-The application does not require a user account or database for the core statement-processing workflow.
+The application remains login-free. Upload sessions, payments, download records and webhook events are persisted in Neon PostgreSQL or another PostgreSQL database. Generated workbook bytes are stored temporarily in the upload-session record and deleted after redemption or expiry. Original uploaded statements are not retained.
 
-Bank statement data is processed as part of the request and used to generate the resulting workbook.
+Flyway migrations create the database schema. Use the `dev` profile locally and the `prod` profile on Render. Production uses Hibernate validation rather than automatic schema creation.
 
-The application is designed around temporary processing rather than maintaining a permanent transaction database.
+## Run Locally
+
+Use Java 17 and Node.js. In separate terminals:
+
+```powershell
+cd bank-statement-analyzer
+.\mvnw.cmd spring-boot:run
+```
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+The Vite development server runs on `http://localhost:3000` and proxies `/api` requests to `http://localhost:8080`.
+
+Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` and `FRONTEND_ORIGIN` in the backend `.env` file. `.env` is ignored by Git. Never put database or Razorpay secret values in a frontend variable.
+
+## Render Deployment Checklist
+
+### Backend Web Service
+
+- Root directory: `bank-statement-analyzer`
+- Build command: `./mvnw clean package`
+- Start command: `java -jar target/bank-statement-analyzer-0.0.1-SNAPSHOT.jar`
+- Environment: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, and `FRONTEND_ORIGIN`.
+- Use Razorpay **Test Mode** key pairs for testing. Switch to Live Mode only after reviewing the live-account setup, webhook/capture settings, session persistence, and payment reconciliation.
+
+### Frontend Static Site
+
+- Root directory: `frontend`
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
+- Build environment variable: `VITE_API_BASE_URL` set to the backend's public base URL, with no trailing slash.
+
+The backend persists sessions and payments in PostgreSQL and uses the Razorpay payment API for capture verification. Configure the Razorpay webhook for the `/api/webhooks/razorpay` endpoint; verify its separate webhook secret and required Razorpay event delivery before live use.
 
 ---
 
@@ -369,9 +375,12 @@ The application is designed around temporary processing rather than maintaining 
 
 ### In Progress
 
-* [ ] Payment gateway integration
-* [ ] Payment verification
-* [ ] Connecting verified payments with Excel processing
+* [x] Razorpay Checkout and server-side payment verification
+* [x] Paid-session workbook download
+* [x] Persistent shared session/payment storage
+* [ ] Neon connection and migration verification
+* [ ] Razorpay live/Test order verification
+* [ ] Webhook delivery verification
 * [ ] Production deployment
 * [ ] Real-world workflow validation
 
