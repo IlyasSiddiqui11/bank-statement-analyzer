@@ -9,7 +9,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class ExcelReaderService {
@@ -40,13 +43,31 @@ public class ExcelReaderService {
                     "Balance"
             };
 
-            for (int i = 0; i < expectedHeaders.length; i++) {
-                String actualHeader = getStringValue(headerRow.getCell(i));
-                if (!expectedHeaders[i].equalsIgnoreCase(actualHeader)) {
-                    throw new IllegalArgumentException(
-                            "Invalid Excel format: Expected '" + expectedHeaders[i] +
-                                    "' in column " + (i + 1));
+            Map<String, Integer> headerColumns = new HashMap<>();
+            for (int column = headerRow.getFirstCellNum(); column < headerRow.getLastCellNum(); column++) {
+                String header = getStringValue(headerRow.getCell(column));
+                if (header != null && !header.isEmpty()) {
+                    headerColumns.putIfAbsent(header.toLowerCase(Locale.ROOT), column);
                 }
+            }
+
+            for (String expectedHeader : expectedHeaders) {
+                if (!headerColumns.containsKey(expectedHeader.toLowerCase(Locale.ROOT))) {
+                    throw new IllegalArgumentException(
+                            "Invalid Excel format: Required column '" + expectedHeader + "' is missing.");
+                }
+            }
+
+            int[] requiredColumns = new int[expectedHeaders.length];
+            int previousColumn = -1;
+            for (int i = 0; i < expectedHeaders.length; i++) {
+                requiredColumns[i] = headerColumns.get(expectedHeaders[i].toLowerCase(Locale.ROOT));
+                if (requiredColumns[i] <= previousColumn) {
+                    throw new IllegalArgumentException(
+                            "Invalid Excel format: Required columns must appear in this order: " +
+                                    String.join(", ", expectedHeaders) + ".");
+                }
+                previousColumn = requiredColumns[i];
             }
 
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -56,12 +77,12 @@ public class ExcelReaderService {
                 }
 
                 Transaction transaction = new Transaction();
-                transaction.setDate(getDate(row.getCell(0)));
-                transaction.setChequeNumber(getStringValue(row.getCell(1)));
-                transaction.setParticulars(getOriginalStringValue(row.getCell(2)));
-                transaction.setDebit(getDoubleValue(row.getCell(3)));
-                transaction.setCredit(getDoubleValue(row.getCell(4)));
-                transaction.setBalance(getDoubleValue(row.getCell(5)));
+                transaction.setDate(getDate(row.getCell(requiredColumns[0])));
+                transaction.setChequeNumber(getStringValue(row.getCell(requiredColumns[1])));
+                transaction.setParticulars(getOriginalStringValue(row.getCell(requiredColumns[2])));
+                transaction.setDebit(getDoubleValue(row.getCell(requiredColumns[3])));
+                transaction.setCredit(getDoubleValue(row.getCell(requiredColumns[4])));
+                transaction.setBalance(getDoubleValue(row.getCell(requiredColumns[5])));
 
                 if (transaction.getDebit() != null || transaction.getCredit() != null) {
                     transactions.add(transaction);

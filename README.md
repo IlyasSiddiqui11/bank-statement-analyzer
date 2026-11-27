@@ -113,7 +113,7 @@ Each individual sheet also contains:
 
 ## 📋 Required Input Excel Format
 
-The uploaded Excel file must contain the following six columns in the first row:
+The first row must contain the following six required column headers in the order shown. Additional columns (such as an `index` column) are ignored and may appear before, between, or after them:
 
 | Column        | Description                       | Example       |
 | ------------- | --------------------------------- | ------------- |
@@ -124,9 +124,7 @@ The uploaded Excel file must contain the following six columns in the first row:
 | `Credit`      | Incoming transaction amount       | `75,000.00`   |
 | `Balance`     | Account balance after transaction | `45,250.00`   |
 
-Transactions begin from the second row.
-
-The application currently expects this standardized structure rather than additional header or opening-balance rows.
+Transactions begin from the second row. The reader uses the header names to find the required values while preserving their required sequence.
 
 ---
 

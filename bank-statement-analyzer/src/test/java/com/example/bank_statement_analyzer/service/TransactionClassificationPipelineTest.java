@@ -22,6 +22,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TransactionClassificationPipelineTest {
@@ -52,6 +53,70 @@ class TransactionClassificationPipelineTest {
         assertEquals("UNKNOWN", parser.extractName("NEFT/TRANSFER//"));
         assertEquals("UNKNOWN", parser.extractName("  "));
         assertEquals("UNKNOWN", parser.extractName(null));
+    }
+
+    @Test
+    void readsTransactionColumnsByHeaderWhenWorkbookContainsAnIndexColumn() throws Exception {
+        byte[] sourceWorkbook;
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Table 1");
+            Row header = sheet.createRow(0);
+            String[] headers = {"index", "Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance"};
+            for (int column = 0; column < headers.length; column++) {
+                header.createCell(column).setCellValue(headers[column]);
+            }
+
+            Row transaction = sheet.createRow(1);
+            transaction.createCell(0).setCellValue(0);
+            var dateCell = transaction.createCell(1);
+            dateCell.setCellValue(java.sql.Date.valueOf(LocalDate.of(2025, 4, 1)));
+            CellStyle dateStyle = workbook.createCellStyle();
+            dateStyle.setDataFormat(workbook.getCreationHelper().createDataFormat().getFormat("yyyy-mm-dd"));
+            dateCell.setCellStyle(dateStyle);
+            transaction.createCell(2).setCellValue("");
+            transaction.createCell(3).setCellValue("UPI/P2M/123/SHOP/UPI/BANK");
+            transaction.createCell(4).setCellValue(189.45);
+            transaction.createCell(6).setCellValue(31306.40);
+
+            workbook.write(output);
+            sourceWorkbook = output.toByteArray();
+        }
+
+        List<Transaction> transactions = new ExcelReaderService().readExcel(new MockMultipartFile(
+                "file",
+                "statement.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                sourceWorkbook));
+
+        assertEquals(1, transactions.size());
+        Transaction transaction = transactions.get(0);
+        assertEquals(LocalDate.of(2025, 4, 1), transaction.getDate());
+        assertEquals("UPI/P2M/123/SHOP/UPI/BANK", transaction.getParticulars());
+        assertEquals(189.45, transaction.getDebit());
+        assertEquals(31306.40, transaction.getBalance());
+    }
+
+    @Test
+    void rejectsTransactionColumnsWhenTheirRequiredSequenceIsChanged() throws Exception {
+        byte[] sourceWorkbook;
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Row header = workbook.createSheet("Table 1").createRow(0);
+            String[] headers = {"index", "Debit", "Tran Date", "Chq No", "Particulars", "Credit", "Balance"};
+            for (int column = 0; column < headers.length; column++) {
+                header.createCell(column).setCellValue(headers[column]);
+            }
+            workbook.write(output);
+            sourceWorkbook = output.toByteArray();
+        }
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "statement.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                sourceWorkbook);
+        assertThrows(IllegalArgumentException.class, () -> new ExcelReaderService().readExcel(file));
     }
 
     @Test
