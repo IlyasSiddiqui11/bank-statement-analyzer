@@ -51,6 +51,11 @@ export default function Home() {
     }
   };
 
+  const handleFileChange = (nextFile) => {
+    setFile(nextFile);
+    setErrorMessage('');
+  };
+
   const verifyCheckoutPayment = async (paymentDetails) => {
     setPendingVerification(paymentDetails);
     setStatus('verifying');
@@ -259,7 +264,7 @@ export default function Home() {
               ) : (
                 <FileUpload
                   file={file}
-                  setFile={setFile}
+                  setFile={handleFileChange}
                   onAnalyze={handleAnalyze}
                   error={fileValidationError}
                   setError={setFileValidationError}
