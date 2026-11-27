@@ -21,7 +21,7 @@ public class ExcelReaderService {
 
     private static final String[] REQUIRED_HEADERS = {
             "Date",
-            "Check Number",
+            "Cheque Number",
             "Particulars",
             "Debit",
             "Credit",
@@ -30,7 +30,7 @@ public class ExcelReaderService {
 
     private static final String INVALID_HEADER_MESSAGE =
             "Invalid Excel format. Please arrange your columns in this exact order: " +
-                    "Date, Check Number, Particulars, Debit, Credit, Balance.";
+                    "Date, Cheque Number, Particulars, Debit, Credit, Balance.";
 
     private static final List<DateTimeFormatter> TEXT_DATE_FORMATS = List.of(
             DateTimeFormatter.ISO_LOCAL_DATE,

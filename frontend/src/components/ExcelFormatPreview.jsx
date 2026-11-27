@@ -51,7 +51,7 @@ export default function ExcelFormatPreview() {
                 </th>
                 <th className="py-3 px-4 font-bold border-r border-emerald-200/50">
                   <div className="flex items-center space-x-1">
-                    <span>Check Number</span>
+                    <span>Cheque Number</span>
                   </div>
                 </th>
                 <th className="py-3 px-4 font-bold border-r border-emerald-200/50">

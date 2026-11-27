@@ -15,7 +15,7 @@ class ApiExceptionHandlerTest {
     void returnsSpecificWorkflowValidationMessageInBadRequestResponse() {
         String message =
                 "Invalid Excel format. Please arrange your columns in this exact order: " +
-                        "Date, Check Number, Particulars, Debit, Credit, Balance.";
+                        "Date, Cheque Number, Particulars, Debit, Credit, Balance.";
 
         ResponseEntity<Map<String, String>> response =
                 new ApiExceptionHandler().handleWorkflowException(

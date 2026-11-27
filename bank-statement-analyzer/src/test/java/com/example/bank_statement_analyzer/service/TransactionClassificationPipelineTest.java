@@ -30,11 +30,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TransactionClassificationPipelineTest {
 
     private static final String[] REQUIRED_HEADERS = {
-            "Date", "Check Number", "Particulars", "Debit", "Credit", "Balance"
+            "Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance"
     };
     private static final String INVALID_HEADER_MESSAGE =
             "Invalid Excel format. Please arrange your columns in this exact order: " +
-                    "Date, Check Number, Particulars, Debit, Credit, Balance.";
+                    "Date, Cheque Number, Particulars, Debit, Credit, Balance.";
 
     private final TransactionParserService parser = new TransactionParserService();
 
@@ -96,9 +96,9 @@ class TransactionClassificationPipelineTest {
 
     @Test
     void rejectsWrongMissingAdditionalAndRenamedHeadersWithSpecificMessage() throws Exception {
-        assertInvalidHeaders("Date", "Particulars", "Check Number", "Debit", "Credit", "Balance");
-        assertInvalidHeaders("Date", "Check Number", "Particulars", "Debit", "Credit");
-        assertInvalidHeaders("Date", "Check Number", "Particulars", "Debit", "Credit", "Balance", "Notes");
+        assertInvalidHeaders("Date", "Particulars", "Cheque Number", "Debit", "Credit", "Balance");
+        assertInvalidHeaders("Date", "Cheque Number", "Particulars", "Debit", "Credit");
+        assertInvalidHeaders("Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance", "Notes");
         assertInvalidHeaders("Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
         assertInvalidHeaders("index", "Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
 

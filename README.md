@@ -118,13 +118,13 @@ The first non-empty row must contain exactly the following six column headers in
 | Column        | Description                       | Example       |
 | ------------- | --------------------------------- | ------------- |
 | `Date`        | Transaction date                  | `01/04/2025`  |
-| `Check Number`| Cheque / reference number         | `100234`      |
+| `Cheque Number`| Cheque / reference number        | `100234`      |
 | `Particulars` | Transaction description           | `UPI/P2M/...` |
 | `Debit`       | Outgoing transaction amount       | `1,500.00`    |
 | `Credit`      | Incoming transaction amount       | `75,000.00`   |
 | `Balance`     | Account balance after transaction | `45,250.00`   |
 
-Transactions begin in the row immediately after the header. The reader validates the six headers, then reads values from columns A through F. Blank Check Number, Debit, and Credit cells are allowed.
+Transactions begin in the row immediately after the header. The reader validates the six headers, then reads values from columns A through F. Blank Cheque Number, Debit, and Credit cells are allowed.
 
 ---
 
