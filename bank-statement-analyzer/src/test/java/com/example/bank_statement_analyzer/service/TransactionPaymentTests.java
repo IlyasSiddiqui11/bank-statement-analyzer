@@ -105,4 +105,34 @@ class TransactionPaymentTests {
         assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatus());
         verifyNoInteractions(cashfree);
     }
+
+    @Test
+    void rejectsInvalidCustomerPhone() {
+        UploadSession session = new UploadSession();
+        session.setStatus("ANALYZED");
+        session.setExpiresAt(java.time.Instant.now().plusSeconds(60));
+        session.setTotalAmountPaise(2500L);
+
+        UploadSessionRepository sessions = mock(UploadSessionRepository.class);
+        when(sessions.findByPublicTokenHash(anyString())).thenReturn(Optional.of(session));
+        CashfreeService cashfree = mock(CashfreeService.class);
+
+        PaymentSessionService service = new PaymentSessionService(
+                mock(ExcelReaderService.class),
+                mock(TransactionGroupingService.class),
+                mock(ExcelWriterService.class),
+                pricing,
+                cashfree,
+                sessions,
+                mock(PaymentRepository.class),
+                mock(DownloadRecordRepository.class),
+                "30",
+                "100");
+
+        WorkflowException exception = assertThrows(
+                WorkflowException.class,
+                () -> service.createOrder("valid-session", "123"));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatus());
+        verifyNoInteractions(cashfree);
+    }
 }

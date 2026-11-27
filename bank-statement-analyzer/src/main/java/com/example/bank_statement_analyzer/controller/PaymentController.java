@@ -22,7 +22,7 @@ public class PaymentController {
         if (request == null) {
             throw new WorkflowException(HttpStatus.BAD_REQUEST, "A statement session token is required.");
         }
-        return paymentSessionService.createOrder(request.sessionToken());
+        return paymentSessionService.createOrder(request.sessionToken(), request.customerPhone());
     }
 
     @PostMapping("/verify")
@@ -34,7 +34,7 @@ public class PaymentController {
         return Map.of("verified", true);
     }
 
-    public record CreateOrderRequest(String sessionToken) {}
+    public record CreateOrderRequest(String sessionToken, String customerPhone) {}
 
     public record VerifyPaymentRequest(
             String sessionToken,

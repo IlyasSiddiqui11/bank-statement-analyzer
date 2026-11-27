@@ -31,9 +31,9 @@ export const analyzeStatement = async (file) => {
   }
 };
 
-export const createPaymentOrder = async (sessionToken) => {
+export const createPaymentOrder = async (sessionToken, customerPhone) => {
   try {
-    const response = await axios.post(`${PAYMENT_API}/create-order`, { sessionToken });
+    const response = await axios.post(`${PAYMENT_API}/create-order`, { sessionToken, customerPhone });
     return response.data;
   } catch (error) {
     throw new Error(await getErrorMessage(error, 'Unable to create a payment order. Please try again.'));

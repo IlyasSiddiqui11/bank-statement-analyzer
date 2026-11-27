@@ -27,7 +27,7 @@ public class Payment {
     @Column(name = "cashfree_payment_id", unique = true, length = 64)
     private String cashfreePaymentId;
 
-    @Column(name = "payment_session_id", length = 128)
+    @Column(name = "payment_session_id", length = 512)
     private String paymentSessionId;
 
     @Column(name = "amount_paise", nullable = false)

@@ -27,6 +27,7 @@ export default function Home() {
   const [fileValidationError, setFileValidationError] = useState('');
   const [pendingVerification, setPendingVerification] = useState(null);
   const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState('');
   const checkoutResolved = useRef(false);
 
   const handleAnalyze = async () => {
@@ -81,7 +82,10 @@ export default function Home() {
     setStatus('paying');
     setErrorMessage('');
     try {
-      const order = await createPaymentOrder(analysis.sessionToken);
+      if (!/^[6-9]\d{9}$/.test(customerPhone)) {
+        throw new Error('Enter a valid 10-digit Indian mobile number.');
+      }
+      const order = await createPaymentOrder(analysis.sessionToken, customerPhone);
       if (order.amountPaise !== analysis.totalAmountPaise) {
         throw new Error('The server returned a payment amount that does not match the quote.');
       }
@@ -225,6 +229,20 @@ export default function Home() {
                       <strong className="text-xl text-emerald-700">{formatRupees(analysis.totalAmountPaise)}</strong>
                     </div>
                   </div>
+                  <label className="mt-5 block text-sm font-semibold text-gray-700" htmlFor="customerPhone">
+                    Mobile number
+                  </label>
+                  <input
+                    id="customerPhone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={10}
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="Enter 10-digit mobile number"
+                    className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
                   <button
                     type="button"
                     onClick={handlePayment}

@@ -51,7 +51,7 @@ public class CashfreeService {
                 .build();
     }
 
-    public PaymentOrder createOrder(String orderId, long amountPaise, String customerId) {
+    public PaymentOrder createOrder(String orderId, long amountPaise, String customerId, String customerPhone) {
         requireCredentials();
         ObjectNode requestBody = objectMapper.createObjectNode();
         requestBody.put("order_id", orderId);
@@ -60,6 +60,7 @@ public class CashfreeService {
 
         ObjectNode customer = requestBody.putObject("customer_details");
         customer.put("customer_id", customerId);
+        customer.put("customer_phone", customerPhone);
 
         ObjectNode orderMeta = requestBody.putObject("order_meta");
         orderMeta.put("return_url", frontendUrl.replaceAll("/$", "") + "/payment/complete");
@@ -150,6 +151,8 @@ public class CashfreeService {
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
             return execute(request);
+        } catch (WorkflowException exception) {
+            throw exception;
         } catch (Exception exception) {
             LOGGER.error("Cashfree order creation request failed.");
             throw new WorkflowException(BAD_GATEWAY, "The payment provider could not create the order.");
@@ -160,6 +163,8 @@ public class CashfreeService {
         try {
             HttpRequest request = authorizedRequest(path).GET().build();
             return execute(request);
+        } catch (WorkflowException exception) {
+            throw exception;
         } catch (Exception exception) {
             LOGGER.error("Cashfree payment lookup request failed.");
             throw new WorkflowException(BAD_GATEWAY, "The payment provider could not verify the payment.");
@@ -180,7 +185,18 @@ public class CashfreeService {
     private JsonNode execute(HttpRequest request) throws Exception {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            LOGGER.error("Cashfree API returned HTTP {}.", response.statusCode());
+            String providerCode = null;
+            String providerMessage = null;
+            try {
+                JsonNode error = objectMapper.readTree(response.body());
+                providerCode = text(error, "code", text(error, "type", null));
+                providerMessage = text(error, "message", null);
+            } catch (Exception ignored) {
+                providerCode = null;
+                providerMessage = null;
+            }
+            LOGGER.error("Cashfree API returned HTTP {} code={} messagePresent={}",
+                    response.statusCode(), providerCode, providerMessage != null);
             throw new WorkflowException(BAD_GATEWAY, "The payment provider request failed.");
         }
         return objectMapper.readTree(response.body());

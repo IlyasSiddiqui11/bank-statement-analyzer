@@ -118,6 +118,11 @@ public class PaymentSessionService {
 
     @Transactional
     public OrderResponse createOrder(String token) {
+        return createOrder(token, null);
+    }
+
+    @Transactional
+    public OrderResponse createOrder(String token, String customerPhone) {
         UploadSession session = requireActiveSession(token);
         if ("PAID".equals(session.getStatus())) {
             throw new WorkflowException(CONFLICT, "This statement has already been paid for.");
@@ -128,6 +133,9 @@ public class PaymentSessionService {
                     "This statement total is below the payment provider's minimum supported order amount. "
                             + "Please upload at least " + ((minimumOrderPaise + 24) / 25)
                             + " valid transaction rows.");
+        }
+        if (isBlank(customerPhone) || !customerPhone.matches("[6-9][0-9]{9}")) {
+            throw new WorkflowException(BAD_REQUEST, "A valid 10-digit Indian mobile number is required for payment.");
         }
 
         var existing = payments.findByUploadSession(session);
@@ -149,7 +157,8 @@ public class PaymentSessionService {
         CashfreeService.PaymentOrder order = cashfreeService.createOrder(
                 internalOrderId,
                 session.getTotalAmountPaise(),
-                "session_" + session.getId());
+                "session_" + session.getId(),
+                customerPhone);
         if (order.amountPaise() != session.getTotalAmountPaise()
                 || !"INR".equals(order.currency())) {
             throw new WorkflowException(BAD_GATEWAY, "The payment provider returned an unexpected order.");
