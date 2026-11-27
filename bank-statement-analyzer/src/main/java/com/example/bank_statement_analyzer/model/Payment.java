@@ -15,11 +15,20 @@ public class Payment {
     @JoinColumn(name = "upload_session_id", nullable = false)
     private UploadSession uploadSession;
 
-    @Column(name = "razorpay_order_id", nullable = false, unique = true, length = 64)
+    @Column(name = "razorpay_order_id", unique = true, length = 64)
     private String razorpayOrderId;
 
     @Column(name = "razorpay_payment_id", unique = true, length = 64)
     private String razorpayPaymentId;
+
+    @Column(name = "cashfree_order_id", unique = true, length = 64)
+    private String cashfreeOrderId;
+
+    @Column(name = "cashfree_payment_id", unique = true, length = 64)
+    private String cashfreePaymentId;
+
+    @Column(name = "payment_session_id", length = 128)
+    private String paymentSessionId;
 
     @Column(name = "amount_paise", nullable = false)
     private Long amountPaise;
@@ -52,6 +61,12 @@ public class Payment {
     public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
     public String getRazorpayPaymentId() { return razorpayPaymentId; }
     public void setRazorpayPaymentId(String razorpayPaymentId) { this.razorpayPaymentId = razorpayPaymentId; }
+    public String getCashfreeOrderId() { return cashfreeOrderId; }
+    public void setCashfreeOrderId(String cashfreeOrderId) { this.cashfreeOrderId = cashfreeOrderId; }
+    public String getCashfreePaymentId() { return cashfreePaymentId; }
+    public void setCashfreePaymentId(String cashfreePaymentId) { this.cashfreePaymentId = cashfreePaymentId; }
+    public String getPaymentSessionId() { return paymentSessionId; }
+    public void setPaymentSessionId(String paymentSessionId) { this.paymentSessionId = paymentSessionId; }
     public Long getAmountPaise() { return amountPaise; }
     public void setAmountPaise(Long amountPaise) { this.amountPaise = amountPaise; }
     public String getCurrency() { return currency; }

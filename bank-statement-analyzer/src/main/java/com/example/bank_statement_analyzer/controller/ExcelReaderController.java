@@ -67,6 +67,12 @@ public class ExcelReaderController {
         if (file == null || file.isEmpty()) {
             throw new WorkflowException(org.springframework.http.HttpStatus.BAD_REQUEST, "Select a non-empty .xlsx file.");
         }
+        String contentType = file.getContentType();
+        if (contentType != null
+                && !WORKBOOK_CONTENT_TYPE.equalsIgnoreCase(contentType)
+                && !"application/octet-stream".equalsIgnoreCase(contentType)) {
+            throw new WorkflowException(org.springframework.http.HttpStatus.BAD_REQUEST, "The uploaded file must be a valid Excel .xlsx workbook.");
+        }
         String fileName = file.getOriginalFilename();
         if (fileName == null || !fileName.toLowerCase(java.util.Locale.ROOT).endsWith(".xlsx")) {
             throw new WorkflowException(org.springframework.http.HttpStatus.BAD_REQUEST, "Only .xlsx files are supported.");

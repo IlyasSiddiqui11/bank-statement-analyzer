@@ -212,11 +212,11 @@ Each worksheet contains the original transaction details along with group-level 
 
 ## Payment and Pricing
 
-The price is **₹0.25 (25 paise) per valid transaction row**. The backend parses the uploaded workbook, calculates the count and total in paise, creates the Razorpay order, verifies the Checkout signature, and checks that the payment is captured for the expected amount before returning a workbook.
+The price is **₹0.25 (25 paise) per valid transaction row**. The backend parses the uploaded workbook, calculates the count and total in paise, creates the Cashfree order, verifies the authoritative Cashfree order/payment status for the expected amount, and then permits a workbook download.
 
 ```text
-Upload .xlsx → Analyze → Review quote → Razorpay Checkout
-             → Server verifies captured payment → Download workbook
+Upload .xlsx → Analyze → Review quote → Cashfree Checkout
+             → Server verifies successful provider payment → Download workbook
 ```
 
 The legacy `/api/excel/read` free-download endpoint is disabled. A payment session is tied to one analyzed statement and expires after 30 minutes. The workbook is redeemed once after successful captured-payment verification.
@@ -324,7 +324,7 @@ npm run dev
 
 The Vite development server runs on `http://localhost:3000` and proxies `/api` requests to `http://localhost:8080`.
 
-Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET` in the backend `.env` file. `.env` is ignored by Git. Never put database or Razorpay secret values in a frontend variable. Production CORS is configured for `https://banklens-ztge.onrender.com`.
+Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENV`, `CASHFREE_API_VERSION`, `FRONTEND_URL`, `FRONTEND_ORIGIN`, and `BACKEND_URL` in the backend `.env` file. `.env` is ignored by Git. Never put the Cashfree secret in a frontend variable.
 
 ## Render Deployment Checklist
 
@@ -333,8 +333,8 @@ Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`,
 - Root directory: `bank-statement-analyzer`
 - Build command: `./mvnw clean package`
 - Start command: `java -jar target/bank-statement-analyzer-0.0.1-SNAPSHOT.jar`
-- Environment: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`.
-- Use Razorpay **Test Mode** key pairs for testing. Switch to Live Mode only after reviewing the live-account setup, webhook/capture settings, session persistence, and payment reconciliation.
+- Environment: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENV`, `CASHFREE_API_VERSION`, `FRONTEND_URL`, `FRONTEND_ORIGIN`, and `BACKEND_URL`.
+- Use Cashfree **Sandbox** credentials for testing. Switch to Production only after configuring the live account, return URL, webhook URL, session persistence, and payment reconciliation.
 
 ### Frontend Static Site
 
@@ -343,7 +343,7 @@ Set `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `RAZORPAY_KEY_ID`,
 - Publish directory: `dist`
 - `VITE_API_BASE_URL` defaults to `https://bank-lens-backend.onrender.com`; set it as a build environment variable only when using a different backend URL.
 
-The backend persists sessions and payments in PostgreSQL and uses the Razorpay payment API for capture verification. Configure the Razorpay webhook for the `/api/webhooks/razorpay` endpoint; verify its separate webhook secret and required Razorpay event delivery before live use.
+The backend persists sessions and payments in PostgreSQL and uses the Cashfree payment API for authoritative verification. Configure the Cashfree webhook for the `/api/webhooks/cashfree` endpoint.
 
 ---
 
@@ -375,11 +375,11 @@ The backend persists sessions and payments in PostgreSQL and uses the Razorpay p
 
 ### In Progress
 
-* [x] Razorpay Checkout and server-side payment verification
+* [x] Cashfree Checkout and authoritative server-side payment verification
 * [x] Paid-session workbook download
 * [x] Persistent shared session/payment storage
 * [ ] Neon connection and migration verification
-* [ ] Razorpay live/Test order verification
+* [ ] Cashfree sandbox/live order verification
 * [ ] Webhook delivery verification
 * [ ] Production deployment
 * [ ] Real-world workflow validation

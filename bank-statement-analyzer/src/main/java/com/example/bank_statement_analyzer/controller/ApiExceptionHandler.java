@@ -30,9 +30,4 @@ public class ApiExceptionHandler {
                 .body(Map.of("error", "The file must be 10 MB or smaller."));
     }
 
-    @ExceptionHandler(com.razorpay.RazorpayException.class)
-    public ResponseEntity<Map<String, String>> handlePaymentProviderFailure() {
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(Map.of("error", "The payment provider could not complete the request. Please try again."));
-    }
 }

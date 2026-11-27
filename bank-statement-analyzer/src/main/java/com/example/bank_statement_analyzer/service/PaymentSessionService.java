@@ -30,27 +30,29 @@ public class PaymentSessionService {
     private final TransactionGroupingService transactionGrouping;
     private final ExcelWriterService excelWriter;
     private final TransactionPricingService pricing;
-    private final RazorpayService razorpayService;
+    private final CashfreeService cashfreeService;
     private final UploadSessionRepository sessions;
     private final PaymentRepository payments;
     private final DownloadRecordRepository downloads;
     private final int ttlMinutes;
+    private final long minimumOrderPaise;
 
     public PaymentSessionService(
             ExcelReaderService excelReader,
             TransactionGroupingService transactionGrouping,
             ExcelWriterService excelWriter,
             TransactionPricingService pricing,
-            RazorpayService razorpayService,
+            CashfreeService cashfreeService,
             UploadSessionRepository sessions,
             PaymentRepository payments,
             DownloadRecordRepository downloads,
-            @Value("${app.session.ttl-minutes:30}") String ttlMinutesValue) {
+            @Value("${app.session.ttl-minutes:30}") String ttlMinutesValue,
+            @Value("${cashfree.minimum-order-paise:100}") String minimumOrderPaiseValue) {
         this.excelReader = excelReader;
         this.transactionGrouping = transactionGrouping;
         this.excelWriter = excelWriter;
         this.pricing = pricing;
-        this.razorpayService = razorpayService;
+        this.cashfreeService = cashfreeService;
         this.sessions = sessions;
         this.payments = payments;
         this.downloads = downloads;
@@ -63,6 +65,15 @@ public class PaymentSessionService {
             }
         }
         this.ttlMinutes = Math.max(1, parsedTtl);
+        long parsedMinimum = 100;
+        if (minimumOrderPaiseValue != null && !minimumOrderPaiseValue.isBlank()) {
+            try {
+                parsedMinimum = Long.parseLong(minimumOrderPaiseValue.trim());
+            } catch (NumberFormatException ignored) {
+                parsedMinimum = 100;
+            }
+        }
+        this.minimumOrderPaise = Math.max(1, parsedMinimum);
     }
 
     @Transactional
@@ -106,28 +117,39 @@ public class PaymentSessionService {
     }
 
     @Transactional
-    public OrderResponse createOrder(String token) throws com.razorpay.RazorpayException {
+    public OrderResponse createOrder(String token) {
         UploadSession session = requireActiveSession(token);
         if ("PAID".equals(session.getStatus())) {
             throw new WorkflowException(CONFLICT, "This statement has already been paid for.");
+        }
+        if (session.getTotalAmountPaise() < minimumOrderPaise) {
+            throw new WorkflowException(
+                    BAD_REQUEST,
+                    "This statement total is below the payment provider's minimum supported order amount. "
+                            + "Please upload at least " + ((minimumOrderPaise + 24) / 25)
+                            + " valid transaction rows.");
         }
 
         var existing = payments.findByUploadSession(session);
         if (existing.isPresent()) {
             Payment payment = existing.get();
-            if (payment.getRazorpayOrderId() != null
+            if (payment.getCashfreeOrderId() != null
+                    && payment.getPaymentSessionId() != null
                     && "ORDER_CREATED".equals(payment.getStatus())) {
                 return new OrderResponse(
-                        payment.getRazorpayOrderId(),
+                        payment.getCashfreeOrderId(),
+                        payment.getPaymentSessionId(),
                         payment.getAmountPaise(),
                         payment.getCurrency(),
-                        razorpayService.getKeyId());
+                        cashfreeService.isProduction() ? "production" : "sandbox");
             }
         }
 
-        RazorpayService.PaymentOrder order = razorpayService.createOrder(
+        String internalOrderId = "BL_" + session.getId().toString().replace("-", "");
+        CashfreeService.PaymentOrder order = cashfreeService.createOrder(
+                internalOrderId,
                 session.getTotalAmountPaise(),
-                "statement_" + session.getId().toString().substring(0, 12));
+                "session_" + session.getId());
         if (order.amountPaise() != session.getTotalAmountPaise()
                 || !"INR".equals(order.currency())) {
             throw new WorkflowException(BAD_GATEWAY, "The payment provider returned an unexpected order.");
@@ -135,7 +157,8 @@ public class PaymentSessionService {
 
         Payment payment = new Payment();
         payment.setUploadSession(session);
-        payment.setRazorpayOrderId(order.orderId());
+        payment.setCashfreeOrderId(order.orderId());
+        payment.setPaymentSessionId(order.paymentSessionId());
         payment.setAmountPaise(order.amountPaise());
         payment.setCurrency(order.currency());
         payment.setStatus("ORDER_CREATED");
@@ -144,56 +167,47 @@ public class PaymentSessionService {
         payment.setCreatedAt(Instant.now());
         payments.saveAndFlush(payment);
 
-        return new OrderResponse(order.orderId(), order.amountPaise(), order.currency(), razorpayService.getKeyId());
+        return new OrderResponse(order.orderId(), order.paymentSessionId(),
+                order.amountPaise(), order.currency(),
+                cashfreeService.isProduction() ? "production" : "sandbox");
     }
 
     @Transactional
-    public void verifyPayment(String token, String orderId, String paymentId, String signature)
-            throws com.razorpay.RazorpayException {
+    public void verifyPayment(String token, String orderId) {
         UploadSession session = requireActiveSession(token);
         if ("PAID".equals(session.getStatus())) {
             throw new WorkflowException(CONFLICT, "This payment has already been verified.");
         }
-        if (isBlank(orderId) || isBlank(paymentId) || isBlank(signature)) {
-            throw new WorkflowException(BAD_REQUEST, "Payment details are required.");
+        if (isBlank(orderId)) {
+            throw new WorkflowException(BAD_REQUEST, "A Cashfree order ID is required.");
         }
 
-        Payment payment = payments.findByRazorpayOrderId(orderId)
+        Payment payment = payments.findByCashfreeOrderId(orderId)
                 .orElseThrow(() -> new WorkflowException(NOT_FOUND, "The payment order was not found."));
         if (!payment.getUploadSession().getId().equals(session.getId())) {
             throw new WorkflowException(BAD_REQUEST, "The payment belongs to another statement.");
         }
-        if (payment.getRazorpayPaymentId() != null
-                && !payment.getRazorpayPaymentId().equals(paymentId)) {
-            throw new WorkflowException(CONFLICT, "This order was already used with another payment.");
-        }
-        if (payments.findByRazorpayPaymentId(paymentId).filter(p -> !p.getId().equals(payment.getId())).isPresent()) {
-            throw new WorkflowException(CONFLICT, "This payment ID was already used.");
+
+        CashfreeService.VerifiedPayment details =
+                cashfreeService.verifyOrderPayment(orderId, session.getTotalAmountPaise());
+        if (!details.successful()) {
+            payment.setStatus("PENDING");
+            payment.setCaptured(false);
+            payment.setFailureMessage(details.status());
+            payments.save(payment);
+            throw new WorkflowException(CONFLICT, "Payment is pending or has not been successful.");
         }
 
-        if (!razorpayService.verifyPaymentSignature(orderId, paymentId, signature)) {
-            payment.setStatus("FAILED");
-            payment.setSignatureVerified(false);
-            payment.setFailureMessage("Invalid payment signature");
-            payments.save(payment);
-            throw new WorkflowException(BAD_REQUEST, "The payment signature is invalid.");
+        if (details.paymentId() != null) {
+            var duplicate = payments.findByCashfreePaymentId(details.paymentId())
+                    .filter(p -> !p.getId().equals(payment.getId()));
+            if (duplicate.isPresent()) {
+                throw new WorkflowException(CONFLICT, "This payment was already used for another order.");
+            }
         }
 
         payment.setSignatureVerified(true);
-        payment.setRazorpayPaymentId(paymentId);
-        RazorpayService.PaymentDetails details = razorpayService.fetchPayment(paymentId);
-        if (!orderId.equals(details.orderId())
-                || details.amountPaise() != session.getTotalAmountPaise()
-                || !"INR".equals(details.currency())
-                || !"captured".equalsIgnoreCase(details.status())
-                || !details.captured()) {
-            payment.setStatus("PENDING");
-            payment.setCaptured(false);
-            payment.setFailureMessage("Payment is not captured or does not match the session");
-            payments.save(payment);
-            throw new WorkflowException(CONFLICT, "Payment is not captured or does not match the order.");
-        }
-
+        payment.setCashfreePaymentId(details.paymentId());
         payment.setCaptured(true);
         payment.setStatus("PAID");
         payment.setVerifiedAt(Instant.now());
@@ -284,5 +298,6 @@ public class PaymentSessionService {
 
     public record AnalysisResponse(String sessionToken, int transactionCount,
                                    int pricePerTransactionPaise, long totalAmountPaise, String currency) {}
-    public record OrderResponse(String orderId, long amountPaise, String currency, String keyId) {}
+    public record OrderResponse(String orderId, String paymentSessionId,
+                                long amountPaise, String currency, String environment) {}
 }

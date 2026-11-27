@@ -18,8 +18,7 @@ public class PaymentController {
     }
 
     @PostMapping("/create-order")
-    public PaymentSessionService.OrderResponse createOrder(@RequestBody CreateOrderRequest request)
-            throws com.razorpay.RazorpayException {
+    public PaymentSessionService.OrderResponse createOrder(@RequestBody CreateOrderRequest request) {
         if (request == null) {
             throw new WorkflowException(HttpStatus.BAD_REQUEST, "A statement session token is required.");
         }
@@ -27,16 +26,11 @@ public class PaymentController {
     }
 
     @PostMapping("/verify")
-    public Map<String, Boolean> verifyPayment(@RequestBody VerifyPaymentRequest request)
-            throws com.razorpay.RazorpayException {
+    public Map<String, Boolean> verifyPayment(@RequestBody VerifyPaymentRequest request) {
         if (request == null) {
             throw new WorkflowException(HttpStatus.BAD_REQUEST, "Payment details are required.");
         }
-        paymentSessionService.verifyPayment(
-                request.sessionToken(),
-                request.orderId(),
-                request.paymentId(),
-                request.signature());
+        paymentSessionService.verifyPayment(request.sessionToken(), request.orderId());
         return Map.of("verified", true);
     }
 
@@ -44,7 +38,5 @@ public class PaymentController {
 
     public record VerifyPaymentRequest(
             String sessionToken,
-            String orderId,
-            String paymentId,
-            String signature) {}
+            String orderId) {}
 }

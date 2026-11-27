@@ -14,9 +14,40 @@ services:
         sync: false
       - key: DATABASE_PASSWORD
         sync: false
-      - key: RAZORPAY_KEY_ID
+      - key: CASHFREE_APP_ID
         sync: false
-      - key: RAZORPAY_KEY_SECRET
+      - key: CASHFREE_SECRET_KEY
         sync: false
-      - key: RAZORPAY_WEBHOOK_SECRET
+      - key: CASHFREE_ENV
+        value: SANDBOX
+      - key: CASHFREE_API_VERSION
+        value: "2023-08-01"
+      - key: CASHFREE_MINIMUM_ORDER_PAISE
+        value: "100"
+      - key: FRONTEND_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+  - type: web
+    name: banklens-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+      - key: VITE_REGISTERED_BUSINESS_NAME
+        sync: false
+      - key: VITE_SUPPORT_EMAIL
+        sync: false
+      - key: VITE_SUPPORT_ADDRESS
+        sync: false
+      - key: VITE_SUPPORT_HOURS
         sync: false

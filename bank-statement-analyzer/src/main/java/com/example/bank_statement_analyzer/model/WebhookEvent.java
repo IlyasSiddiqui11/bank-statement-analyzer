@@ -11,8 +11,11 @@ public class WebhookEvent {
     @GeneratedValue
     private UUID id;
 
-    @Column(name = "razorpay_event_id", nullable = false, unique = true, length = 128)
+    @Column(name = "razorpay_event_id", unique = true, length = 128)
     private String razorpayEventId;
+
+    @Column(name = "cashfree_event_id", unique = true, length = 128)
+    private String cashfreeEventId;
 
     @Column(name = "event_type", nullable = false, length = 128)
     private String eventType;
@@ -29,6 +32,8 @@ public class WebhookEvent {
     public UUID getId() { return id; }
     public String getRazorpayEventId() { return razorpayEventId; }
     public void setRazorpayEventId(String razorpayEventId) { this.razorpayEventId = razorpayEventId; }
+    public String getCashfreeEventId() { return cashfreeEventId; }
+    public void setCashfreeEventId(String cashfreeEventId) { this.cashfreeEventId = cashfreeEventId; }
     public String getEventType() { return eventType; }
     public void setEventType(String eventType) { this.eventType = eventType; }
     public String getProcessingStatus() { return processingStatus; }

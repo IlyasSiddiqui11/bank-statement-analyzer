@@ -13,8 +13,10 @@ public class DatabaseConfiguration {
     @Bean
     @ConfigurationProperties("spring.datasource.hikari")
     DataSource dataSource(DataSourceProperties properties) {
-        properties.setUrl(normalizeDatabaseUrl(properties.determineUrl()));
-        return properties.initializeDataSourceBuilder().build();
+        String url = normalizeDatabaseUrl(properties.determineUrl());
+        return properties.initializeDataSourceBuilder()
+                .url(url)
+                .build();
     }
 
     static String normalizeDatabaseUrl(String url) {

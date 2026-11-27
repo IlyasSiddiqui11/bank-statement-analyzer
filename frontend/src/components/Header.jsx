@@ -1,5 +1,6 @@
 import React from 'react';
 import { Landmark } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Header() {
   const scrollToHowItWorks = (e) => {
@@ -14,14 +15,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-xs">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo & Name */}
-        <div className="flex items-center space-x-3">
+        <Link to="/" className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-[#16A34A] flex items-center justify-center text-white shadow-sm">
             <Landmark className="w-5 h-5" />
           </div>
           <span className="text-xl font-bold text-[#1F2937] tracking-tight">
             Bank<span className="text-[#16A34A]">Lens</span>
           </span>
-        </div>
+        </Link>
 
         {/* Right Navigation */}
         <nav className="flex items-center space-x-6">

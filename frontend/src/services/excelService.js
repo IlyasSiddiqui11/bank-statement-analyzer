@@ -40,13 +40,11 @@ export const createPaymentOrder = async (sessionToken) => {
   }
 };
 
-export const verifyPayment = async ({ sessionToken, orderId, paymentId, signature }) => {
+export const verifyPayment = async ({ sessionToken, orderId }) => {
   try {
     const response = await axios.post(`${PAYMENT_API}/verify`, {
       sessionToken,
       orderId,
-      paymentId,
-      signature,
     });
     return response.data;
   } catch (error) {
@@ -67,29 +65,29 @@ export const downloadWorkbook = async (sessionToken) => {
   }
 };
 
-export const loadRazorpayCheckout = () => {
-  if (window.Razorpay) {
+export const loadCashfreeCheckout = () => {
+  if (window.Cashfree) {
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
-    const existingScript = document.querySelector('script[data-razorpay-checkout]');
+    const existingScript = document.querySelector('script[data-cashfree-checkout]');
     if (existingScript) {
       existingScript.addEventListener('load', resolve, { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('Razorpay Checkout could not be loaded.')), {
+      existingScript.addEventListener('error', () => reject(new Error('Cashfree Checkout could not be loaded.')), {
         once: true,
       });
       return;
     }
 
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.src = 'https://sdk.cashfree.com/js/v3/checkout.js';
     script.async = true;
-    script.dataset.razorpayCheckout = 'true';
+    script.dataset.cashfreeCheckout = 'true';
     script.onload = resolve;
     script.onerror = () => {
       script.remove();
-      reject(new Error('Razorpay Checkout could not be loaded. Check your internet connection and retry.'));
+      reject(new Error('Cashfree Checkout could not be loaded. Check your internet connection and retry.'));
     };
     document.body.appendChild(script);
   });

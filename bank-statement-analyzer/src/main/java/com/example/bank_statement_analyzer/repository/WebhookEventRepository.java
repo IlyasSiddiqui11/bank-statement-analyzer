@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface WebhookEventRepository extends JpaRepository<WebhookEvent, UUID> {
     Optional<WebhookEvent> findByRazorpayEventId(String razorpayEventId);
+    Optional<WebhookEvent> findByCashfreeEventId(String cashfreeEventId);
 }

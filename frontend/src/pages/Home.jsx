@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import FileUpload from '../components/FileUpload';
 import ProcessingState from '../components/ProcessingState';
@@ -9,7 +10,7 @@ import {
   analyzeStatement,
   createPaymentOrder,
   downloadWorkbook,
-  loadRazorpayCheckout,
+  loadCashfreeCheckout,
   verifyPayment,
 } from '../services/excelService';
 import { saveAs } from 'file-saver';
@@ -84,44 +85,29 @@ export default function Home() {
       if (order.amountPaise !== analysis.totalAmountPaise) {
         throw new Error('The server returned a payment amount that does not match the quote.');
       }
-      await loadRazorpayCheckout();
+      await loadCashfreeCheckout();
+      window.sessionStorage.setItem('banklens.sessionToken', analysis.sessionToken);
+      window.sessionStorage.setItem('banklens.orderId', order.orderId);
 
       checkoutResolved.current = false;
-      const checkout = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amountPaise,
-        currency: order.currency,
-        name: 'BankLens',
-        description: `${analysis.transactionCount} valid transaction rows`,
-        order_id: order.orderId,
-        handler: (response) => {
-          checkoutResolved.current = true;
-          verifyCheckoutPayment({
-            sessionToken: analysis.sessionToken,
-            orderId: response.razorpay_order_id,
-            paymentId: response.razorpay_payment_id,
-            signature: response.razorpay_signature,
-          });
-        },
-        modal: {
-          ondismiss: () => {
-            if (!checkoutResolved.current) {
-              setStatus('ready');
-              setErrorMessage('Payment was cancelled. You can try again when ready.');
-            }
-          },
-        },
-        theme: { color: '#16A34A' },
+      const cashfree = window.Cashfree({
+        mode: order.environment,
       });
-
-      checkout.on('payment.failed', () => {
+      setStatus('checkout');
+      cashfree.checkout({
+        paymentSessionId: order.paymentSessionId,
+        redirectTarget: '_modal',
+      }).then(() => {
+        checkoutResolved.current = true;
+        verifyCheckoutPayment({
+          sessionToken: analysis.sessionToken,
+          orderId: order.orderId,
+        });
+      }).catch(() => {
         checkoutResolved.current = true;
         setStatus('ready');
-        setErrorMessage('Payment failed. No workbook was released. Please try again.');
+        setErrorMessage('Payment could not be completed. No workbook was released. Please try again.');
       });
-
-      setStatus('checkout');
-      checkout.open();
     } catch (error) {
       setErrorMessage(error.message || 'Unable to start checkout. Please try again.');
       setStatus('ready');
@@ -159,7 +145,7 @@ export default function Home() {
   const processingMessage = {
     analyzing: 'Checking the spreadsheet and counting valid transaction rows.',
     paying: 'Preparing your payment checkout.',
-    checkout: 'Complete payment in the Razorpay window.',
+    checkout: 'Complete payment in the Cashfree checkout window.',
     verifying: 'Confirming your payment with the server.',
     downloading: 'Preparing your processed workbook.',
   }[status];
@@ -245,7 +231,7 @@ export default function Home() {
                     disabled={Boolean(pendingVerification)}
                     className="mt-6 w-full py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center space-x-2 bg-[#16A34A] hover:bg-[#15803D] disabled:bg-gray-300 text-white transition-colors"
                   >
-                    <span>{pendingVerification ? 'Verify your previous payment first' : 'Continue to Razorpay checkout'}</span>
+                    <span>{pendingVerification ? 'Verify your previous payment first' : 'Continue to Cashfree checkout'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <p className="mt-4 text-xs text-center text-gray-500">
@@ -273,6 +259,14 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4">
           <p className="text-sm font-semibold text-[#1F2937]">BankLens</p>
           <p className="text-xs text-gray-500 mt-1">Your Data, Better Organized.</p>
+          <p className="text-xs text-gray-600 mt-3">₹0.25 per valid transaction row</p>
+          <nav className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-semibold">
+            <Link className="text-gray-600 hover:text-emerald-700" to="/about">About Us</Link>
+            <Link className="text-gray-600 hover:text-emerald-700" to="/contact">Contact Us</Link>
+            <Link className="text-gray-600 hover:text-emerald-700" to="/terms">Terms &amp; Conditions</Link>
+            <Link className="text-gray-600 hover:text-emerald-700" to="/privacy">Privacy Policy</Link>
+            <Link className="text-gray-600 hover:text-emerald-700" to="/refund-policy">Refund &amp; Cancellation</Link>
+          </nav>
           <p className="text-xs text-gray-400 mt-4">
             &copy; 2026 BankLens. All rights reserved.
           </p>
