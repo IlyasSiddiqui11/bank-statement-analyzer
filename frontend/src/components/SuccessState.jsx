@@ -17,7 +17,7 @@ export default function SuccessState({
       </div>
       <h2 className="text-2xl font-bold text-[#1F2937] mb-2">Payment verified</h2>
       <p className="text-gray-600 text-sm sm:text-base mb-6 max-w-md mx-auto">
-        Your payment was confirmed by the server. Your organized workbook is ready.
+        Your payment was confirmed by the server. Your BankLens workbook is ready to download.
       </p>
 
       <div className="bg-[#F7FAF8] border border-emerald-100 rounded-xl p-4 mb-6 text-left max-w-md mx-auto space-y-3">
