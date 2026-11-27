@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader2, FileSpreadsheet } from 'lucide-react';
 
-export default function ProcessingState({ fileName, message = 'Please wait while we analyze your statement.' }) {
+export default function ProcessingState({ fileName, message = 'Please wait while we process your spreadsheet.' }) {
   return (
     <div className="bg-white rounded-2xl border border-emerald-100 p-8 sm:p-12 shadow-sm text-center max-w-2xl mx-auto">
       <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center">
@@ -12,7 +12,7 @@ export default function ProcessingState({ fileName, message = 'Please wait while
       </div>
 
       <h3 className="text-xl font-bold text-[#1F2937] mb-2">
-        Analyzing your statement...
+        Processing your spreadsheet...
       </h3>
       <p className="text-gray-500 text-sm sm:text-base mb-6 max-w-md mx-auto">
         {message}

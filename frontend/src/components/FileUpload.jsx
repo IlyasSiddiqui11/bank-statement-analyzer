@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FileSpreadsheet, UploadCloud, RefreshCw, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { FileSpreadsheet, UploadCloud, RefreshCw, AlertCircle, ArrowRight, Info } from 'lucide-react';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -96,6 +96,13 @@ export default function FileUpload({ file, setFile, onAnalyze, error, setError }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-6 sm:p-8 max-w-2xl mx-auto transition-all duration-200">
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-[#1F2937]">Upload Your Spreadsheet</h2>
+        <p className="text-sm text-gray-500 mt-2">
+          Upload a supported Excel (.xlsx) file with the six transaction columns shown below. BankLens organizes its records into a structured workbook.
+        </p>
+      </div>
+
       {/* Hidden native file input */}
       <input
         type="file"
@@ -201,15 +208,15 @@ export default function FileUpload({ file, setFile, onAnalyze, error, setError }
               : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
           }`}
         >
-          <span>Analyze Statement</span>
+          <span>Process File</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 
       {/* Privacy / Security Note */}
       <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-center space-x-2 text-xs text-gray-500">
-        <ShieldCheck className="w-4 h-4 text-[#16A34A]" />
-        <span>Your statement is processed only to generate the organized workbook.</span>
+        <Info className="w-4 h-4 text-[#16A34A]" />
+        <span>Uploaded transaction data is processed to create your workbook.</span>
       </div>
     </div>
   );
