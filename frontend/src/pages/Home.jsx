@@ -91,7 +91,7 @@ export default function Home() {
         key: order.keyId,
         amount: order.amountPaise,
         currency: order.currency,
-        name: 'Bank Statement Analyzer',
+        name: 'BankLens',
         description: `${analysis.transactionCount} transactions`,
         order_id: order.orderId,
         handler: (response) => {
@@ -175,10 +175,10 @@ export default function Home() {
             <span>Simple · Secure · Pay per transaction</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1F2937] tracking-tight leading-tight mb-4">
-            Organize Your Bank Statement
+            BankLens
           </h1>
           <p className="text-gray-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            Upload an Excel statement, review the transaction-based price, and pay securely before downloading.
+            Your Bank Statements, Organized. Upload an Excel statement, review the transaction-based price, and pay securely to download your structured workbook.
           </p>
         </div>
 
@@ -269,10 +269,10 @@ export default function Home() {
 
       <footer className="bg-white border-t border-gray-200 py-8 text-center mt-auto">
         <div className="max-w-5xl mx-auto px-4">
-          <p className="text-sm font-semibold text-[#1F2937]">Bank Statement Analyzer</p>
-          <p className="text-xs text-gray-500 mt-1">Organize your financial statements with ease.</p>
+          <p className="text-sm font-semibold text-[#1F2937]">BankLens</p>
+          <p className="text-xs text-gray-500 mt-1">Your Bank Statements, Organized.</p>
           <p className="text-xs text-gray-400 mt-4">
-            &copy; {new Date().getFullYear()} Bank Statement Analyzer. All rights reserved.
+            &copy; 2026 BankLens. All rights reserved.
           </p>
         </div>
       </footer>

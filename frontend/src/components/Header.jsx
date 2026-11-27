@@ -19,7 +19,7 @@ export default function Header() {
             <Landmark className="w-5 h-5" />
           </div>
           <span className="text-xl font-bold text-[#1F2937] tracking-tight">
-            Bank Statement <span className="text-[#16A34A]">Analyzer</span>
+            Bank<span className="text-[#16A34A]">Lens</span>
           </span>
         </div>
 
