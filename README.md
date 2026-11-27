@@ -97,7 +97,7 @@ A dedicated worksheet is generated for each identified entity or category.
 
 Each sheet contains:
 
-| Tran Date  | Chq No | Particulars | Debit | Credit | Balance |
+| Date       | Cheque Number | Particulars | Debit | Credit | Balance |
 | ---------- | ------ | ----------- | ----: | -----: | ------: |
 | 01-04-2025 |        | UPI/...     |   500 |        |    9500 |
 | 02-04-2025 |        | NEFT/...    |       |   1000 |   10500 |
@@ -113,7 +113,7 @@ Each individual sheet also contains:
 
 ## 📋 Required Input Excel Format
 
-The first non-empty row must contain exactly the following six column headers in the order shown. Do not add, remove, or rename columns. Empty rows before the header are ignored; any non-empty row before the header is rejected.
+The first row containing recognizable transaction headers must contain the following six columns in the order shown. Approved bank header variations are accepted. Do not add, remove, or reorder columns. Empty or unrelated rows before the header are ignored.
 
 | Column        | Description                       | Example       |
 | ------------- | --------------------------------- | ------------- |
@@ -124,7 +124,7 @@ The first non-empty row must contain exactly the following six column headers in
 | `Credit`      | Incoming transaction amount       | `75,000.00`   |
 | `Balance`     | Account balance after transaction | `45,250.00`   |
 
-Transactions begin in the row immediately after the header. The reader validates the six headers, then reads values from columns A through F. Blank Cheque Number, Debit, and Credit cells are allowed.
+Common header variations such as `Tran Date`, `Chq No`, `Narration`, `Withdrawal`, and `Deposit` are accepted in their respective positions. Transactions begin in the row immediately after the header. The reader then reads values from columns A through F. Blank Cheque Number, Debit, and Credit cells are allowed.
 
 ---
 

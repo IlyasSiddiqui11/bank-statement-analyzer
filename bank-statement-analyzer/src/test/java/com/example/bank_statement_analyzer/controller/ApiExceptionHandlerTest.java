@@ -14,7 +14,7 @@ class ApiExceptionHandlerTest {
     @Test
     void returnsSpecificWorkflowValidationMessageInBadRequestResponse() {
         String message =
-                "Invalid Excel format. Please arrange your columns in this exact order: " +
+                "Invalid Excel format. Please arrange your six columns in this exact order: " +
                         "Date, Cheque Number, Particulars, Debit, Credit, Balance.";
 
         ResponseEntity<Map<String, String>> response =

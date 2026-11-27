@@ -2,6 +2,7 @@ package com.example.bank_statement_analyzer.service;
 
 import com.example.bank_statement_analyzer.model.Transaction;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,8 +29,17 @@ public class ExcelReaderService {
             "Balance"
     };
 
+    private static final List<List<String>> HEADER_ALIASES = List.of(
+            List.of("Date", "Transaction Date", "Tran Date"),
+            List.of("Cheque Number", "Cheque No", "Chq No", "Chq Number", "Chq. No", "Check Number", "Check No"),
+            List.of("Particulars", "Description", "Narration", "Transaction Details"),
+            List.of("Debit", "Withdrawal", "Withdrawals", "Debit Amount"),
+            List.of("Credit", "Deposit", "Deposits", "Credit Amount"),
+            List.of("Balance", "Closing Balance", "Available Balance")
+    );
+
     private static final String INVALID_HEADER_MESSAGE =
-            "Invalid Excel format. Please arrange your columns in this exact order: " +
+            "Invalid Excel format. Please arrange your six columns in this exact order: " +
                     "Date, Cheque Number, Particulars, Debit, Credit, Balance.";
 
     private static final List<DateTimeFormatter> TEXT_DATE_FORMATS = List.of(
@@ -50,17 +60,23 @@ public class ExcelReaderService {
 
             Sheet sheet = workbook.getSheetAt(0);
             int headerRowIndex = findHeaderRow(sheet);
-            if (headerRowIndex < 0 || !hasRequiredHeaders(sheet.getRow(headerRowIndex))) {
+            if (headerRowIndex < 0) {
                 throw new WorkflowException(HttpStatus.BAD_REQUEST, INVALID_HEADER_MESSAGE);
             }
+            validateHeaderRow(sheet.getRow(headerRowIndex));
 
             for (int rowIndex = headerRowIndex + 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
                 if (row == null) {
                     continue;
                 }
-                if (hasDataBeyondRequiredColumns(row)) {
-                    throw new WorkflowException(HttpStatus.BAD_REQUEST, INVALID_HEADER_MESSAGE);
+                int extraDataColumn = findDataBeyondRequiredColumns(row);
+                if (extraDataColumn >= 0) {
+                    throw new WorkflowException(
+                            HttpStatus.BAD_REQUEST,
+                            "Unexpected transaction data in column " +
+                                    CellReference.convertNumToColString(extraDataColumn) +
+                                    " at row " + (rowIndex + 1) + ". The format ends at column F (Balance).");
                 }
 
                 Transaction transaction = new Transaction();
@@ -80,43 +96,109 @@ public class ExcelReaderService {
     }
 
     private int findHeaderRow(Sheet sheet) {
+        int firstNonEmptyRow = -1;
         for (int rowIndex = sheet.getFirstRowNum(); rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
-            if (row == null) {
+            if (row == null || isEmptyRow(row)) {
                 continue;
             }
-            for (Cell cell : row) {
-                if (!isBlank(cell)) {
-                    return rowIndex;
-                }
+            if (firstNonEmptyRow < 0) {
+                firstNonEmptyRow = rowIndex;
+            }
+            if (isHeaderCandidate(row)) {
+                return rowIndex;
+            }
+        }
+        return firstNonEmptyRow;
+    }
+
+    private void validateHeaderRow(Row row) {
+        for (int column = 0; column < REQUIRED_HEADERS.length; column++) {
+            String header = getStringValue(row.getCell(column));
+            if (header == null || header.isBlank()) {
+                throw invalidHeaderOrder();
+            }
+
+            int headerColumn = getHeaderColumnIndex(header);
+            if (headerColumn < 0) {
+                throw unsupportedHeader(header, column);
+            }
+            if (headerColumn != column) {
+                throw invalidHeaderOrder();
+            }
+        }
+
+        for (int column = REQUIRED_HEADERS.length; column < row.getLastCellNum(); column++) {
+            String header = getStringValue(row.getCell(column));
+            if (header != null && !header.isBlank()) {
+                throw unsupportedHeader(header, column);
+            }
+        }
+    }
+
+    private int findDataBeyondRequiredColumns(Row row) {
+        for (int column = REQUIRED_HEADERS.length; column < row.getLastCellNum(); column++) {
+            if (!isBlank(row.getCell(column))) {
+                return column;
             }
         }
         return -1;
     }
 
-    private boolean hasRequiredHeaders(Row row) {
-        for (int column = 0; column < REQUIRED_HEADERS.length; column++) {
-            String header = getStringValue(row.getCell(column));
-            if (!REQUIRED_HEADERS[column].equalsIgnoreCase(header)) {
-                return false;
-            }
-        }
-
-        for (int column = REQUIRED_HEADERS.length; column < row.getLastCellNum(); column++) {
-            if (!isBlank(row.getCell(column))) {
+    private boolean isEmptyRow(Row row) {
+        for (Cell cell : row) {
+            if (!isBlank(cell)) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean hasDataBeyondRequiredColumns(Row row) {
-        for (int column = REQUIRED_HEADERS.length; column < row.getLastCellNum(); column++) {
-            if (!isBlank(row.getCell(column))) {
-                return true;
+    private boolean isHeaderCandidate(Row row) {
+        if (getHeaderColumnIndex(getStringValue(row.getCell(0))) == 0) {
+            return true;
+        }
+
+        int recognizedHeaderCount = 0;
+        for (int column = 0; column < REQUIRED_HEADERS.length; column++) {
+            if (getHeaderColumnIndex(getStringValue(row.getCell(column))) >= 0) {
+                recognizedHeaderCount++;
             }
         }
-        return false;
+        return recognizedHeaderCount >= 4;
+    }
+
+    private int getHeaderColumnIndex(String header) {
+        if (header == null || header.isBlank()) {
+            return -1;
+        }
+        String normalizedHeader = normalizeHeader(header);
+        for (int column = 0; column < HEADER_ALIASES.size(); column++) {
+            for (String alias : HEADER_ALIASES.get(column)) {
+                if (normalizeHeader(alias).equals(normalizedHeader)) {
+                    return column;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private String normalizeHeader(String header) {
+        return header.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+    }
+
+    private WorkflowException invalidHeaderOrder() {
+        return new WorkflowException(HttpStatus.BAD_REQUEST, INVALID_HEADER_MESSAGE);
+    }
+
+    private WorkflowException unsupportedHeader(String header, int column) {
+        String expectedHeader = column < REQUIRED_HEADERS.length
+                ? REQUIRED_HEADERS[column]
+                : "no additional column after Balance";
+        return new WorkflowException(
+                HttpStatus.BAD_REQUEST,
+                "Unrecognized header '" + header + "' in column " +
+                        CellReference.convertNumToColString(column) + ". Expected '" + expectedHeader + "'.");
     }
 
     private String getStringValue(Cell cell) {

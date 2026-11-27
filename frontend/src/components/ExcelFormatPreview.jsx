@@ -18,7 +18,7 @@ export default function ExcelFormatPreview() {
         </div>
         <h2 className="text-2xl font-bold text-[#1F2937]">Supported Spreadsheet Format</h2>
         <p className="text-gray-500 text-sm mt-1">
-          Your transaction spreadsheet must contain exactly these six columns in this order:
+          Keep these six columns in this order. Approved bank header variations are also accepted:
         </p>
       </div>
 
@@ -93,7 +93,7 @@ export default function ExcelFormatPreview() {
       </div>
 
       <p className="text-center text-xs text-gray-500 mt-4">
-        Do not add, remove, rename, or reorder these columns.
+        Do not add, remove, or reorder these columns.
       </p>
     </section>
   );

@@ -126,10 +126,10 @@ public class ExcelWriterService {
             Row headerRow = sheet.createRow(0);
 
             headerRow.createCell(0)
-                    .setCellValue("Tran Date");
+                    .setCellValue("Date");
 
             headerRow.createCell(1)
-                    .setCellValue("Chq No");
+                    .setCellValue("Cheque Number");
 
             headerRow.createCell(2)
                     .setCellValue("Particulars");

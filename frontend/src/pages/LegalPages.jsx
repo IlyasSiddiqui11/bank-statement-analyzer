@@ -76,7 +76,7 @@ export function TermsPage() {
       </section>
       <section>
         <h2 className="text-lg font-bold">Input format and processing</h2>
-        <p>The input must contain exactly these six columns in order: Date, Cheque Number, Particulars, Debit, Credit, and Balance. The software derives a valid transaction count and groups recognized persons, merchants, and categories. Classification and extraction may require review, and the software does not guarantee perfect reconciliation or accuracy.</p>
+        <p>The input must contain these six columns in order: Date, Cheque Number, Particulars, Debit, Credit, and Balance. Approved bank header variations are accepted in their respective positions. The software derives a valid transaction count and groups recognized persons, merchants, and categories. Classification and extraction may require review, and the software does not guarantee perfect reconciliation or accuracy.</p>
       </section>
       <section>
         <h2 className="text-lg font-bold">Pricing and payment</h2>

@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ class TransactionClassificationPipelineTest {
             "Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance"
     };
     private static final String INVALID_HEADER_MESSAGE =
-            "Invalid Excel format. Please arrange your columns in this exact order: " +
+            "Invalid Excel format. Please arrange your six columns in this exact order: " +
                     "Date, Cheque Number, Particulars, Debit, Credit, Balance.";
 
     private final TransactionParserService parser = new TransactionParserService();
@@ -95,12 +96,46 @@ class TransactionClassificationPipelineTest {
     }
 
     @Test
-    void rejectsWrongMissingAdditionalAndRenamedHeadersWithSpecificMessage() throws Exception {
-        assertInvalidHeaders("Date", "Particulars", "Cheque Number", "Debit", "Credit", "Balance");
+    void acceptsApprovedHeaderAliasesInTheRequiredOrder() throws Exception {
+        String[][] headerVariations = {
+                {"Date", "Chq No", "Particulars", "Debit", "Credit", "Balance"},
+                {"Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance"},
+                {"Date", "Cheque No", "Particulars", "Debit", "Credit", "Balance"},
+                {"Transaction Date", "Cheque Number", "Narration", "Withdrawal", "Deposit", "Closing Balance"},
+                {"Tran Date", "Chq Number", "Description", "Withdrawals", "Deposits", "Available Balance"},
+                {" tRaN   dAtE ", "Chq. No.", "Transaction Details", "Debit Amount", "Credit Amount", "Balance"},
+                {"Date", "Check Number", "Particulars", "Debit", "Credit Amount", "Closing Balance"},
+                {"Date", "Check No", "Particulars", "Debit", "Credit", "Balance"}
+        };
+
+        for (String[] headers : headerVariations) {
+            List<Transaction> transactions = new ExcelReaderService().readExcel(
+                    createUpload(createStatementWorkbook(headers, false, false, false)));
+            assertEquals(2, transactions.size(), String.join(" | ", headers));
+        }
+    }
+
+    @Test
+    void rejectsWrongOrderAndMissingHeadersWithRequiredOrderMessage() throws Exception {
+        assertInvalidHeaders("Date", "Particulars", "Chq No", "Debit", "Credit", "Balance");
+        assertInvalidHeaders("Date", "", "Particulars", "Debit", "Credit", "Balance");
         assertInvalidHeaders("Date", "Cheque Number", "Particulars", "Debit", "Credit");
-        assertInvalidHeaders("Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance", "Notes");
-        assertInvalidHeaders("Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
-        assertInvalidHeaders("index", "Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
+    }
+
+    @Test
+    void reportsUnsupportedAndAdditionalHeadersSpecifically() throws Exception {
+        assertHeaderError(
+                "Unrecognized header 'Memo' in column C. Expected 'Particulars'.",
+                "Date", "Cheque Number", "Memo", "Debit", "Credit", "Balance");
+        assertHeaderError(
+                "Unrecognized header 'Notes' in column G. Expected 'no additional column after Balance'.",
+                "Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance", "Notes");
+        assertHeaderError(
+                "Unrecognized header 'index' in column A. Expected 'Date'.",
+                "index", "Tran Date", "Chq No", "Particulars", "Debit", "Credit", "Balance");
+        assertHeaderError(
+                "Unrecognized header 'Statement Date' in column A. Expected 'Date'.",
+                "Statement Date", "Cheque Number", "Particulars", "Debit", "Credit", "Balance");
 
         byte[] sourceWorkbook = createStatementWorkbook(REQUIRED_HEADERS, false, false, false);
         byte[] workbookWithExtraData;
@@ -110,7 +145,12 @@ class TransactionClassificationPipelineTest {
             workbook.write(output);
             workbookWithExtraData = output.toByteArray();
         }
-        assertInvalidWorkbook(workbookWithExtraData);
+        WorkflowException exception = assertThrows(
+                WorkflowException.class,
+                () -> new ExcelReaderService().readExcel(createUpload(workbookWithExtraData)));
+        assertEquals(
+                "Unexpected transaction data in column G at row 2. The format ends at column F (Balance).",
+                exception.getMessage());
     }
 
     @Test
@@ -165,6 +205,9 @@ class TransactionClassificationPipelineTest {
                     new ByteArrayInputStream(outputBytes.toByteArray()))) {
                 assertEquals(10, generated.getNumberOfSheets());
                 assertTrue(generated.getSheet("Summary") != null);
+                Row outputHeader = generated.getSheet("AMIT KUMAR").getRow(0);
+                assertEquals("Date", outputHeader.getCell(0).getStringCellValue());
+                assertEquals("Cheque Number", outputHeader.getCell(1).getStringCellValue());
 
                 Map<String, Integer> expectedCounts = Map.of(
                         "AMIT KUMAR", 15,
@@ -241,14 +284,14 @@ class TransactionClassificationPipelineTest {
     }
 
     private static void assertInvalidHeaders(String... headers) throws Exception {
-        assertInvalidWorkbook(createHeaderOnlyWorkbook(headers));
+        assertHeaderError(INVALID_HEADER_MESSAGE, headers);
     }
 
-    private static void assertInvalidWorkbook(byte[] workbook) throws Exception {
+    private static void assertHeaderError(String expectedMessage, String... headers) throws Exception {
         WorkflowException exception = assertThrows(
                 WorkflowException.class,
-                () -> new ExcelReaderService().readExcel(createUpload(workbook)));
-        assertEquals(INVALID_HEADER_MESSAGE, exception.getMessage());
+                () -> new ExcelReaderService().readExcel(createUpload(createHeaderOnlyWorkbook(headers))));
+        assertEquals(expectedMessage, exception.getMessage());
     }
 
     private static MockMultipartFile createUpload(byte[] workbook) {
@@ -311,6 +354,8 @@ class TransactionClassificationPipelineTest {
                 setAmountCell(transaction, 4, credits[index], textAmounts);
                 setAmountCell(transaction, 5, balances[index], textAmounts);
             }
+            sheet.setAutoFilter(new CellRangeAddress(
+                    headerRowIndex, headerRowIndex + particulars.length, 0, REQUIRED_HEADERS.length - 1));
 
             workbook.write(output);
             return output.toByteArray();
