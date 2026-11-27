@@ -19,7 +19,7 @@ services:
       - key: CASHFREE_SECRET_KEY
         sync: false
       - key: CASHFREE_ENV
-        value: SANDBOX
+        value: PRODUCTION
       - key: CASHFREE_API_VERSION
         value: "2023-08-01"
       - key: CASHFREE_MINIMUM_ORDER_PAISE

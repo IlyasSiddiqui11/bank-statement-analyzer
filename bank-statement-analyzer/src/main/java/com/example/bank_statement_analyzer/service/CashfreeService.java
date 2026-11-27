@@ -186,18 +186,30 @@ public class CashfreeService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             String providerCode = null;
-            String providerMessage = null;
             try {
                 JsonNode error = objectMapper.readTree(response.body());
                 providerCode = text(error, "code", text(error, "type", null));
-                providerMessage = text(error, "message", null);
             } catch (Exception ignored) {
                 providerCode = null;
-                providerMessage = null;
             }
-            LOGGER.error("Cashfree API returned HTTP {} code={} messagePresent={}",
-                    response.statusCode(), providerCode, providerMessage != null);
-            throw new WorkflowException(BAD_GATEWAY, "The payment provider request failed.");
+            LOGGER.error("Cashfree API returned HTTP {} code={}",
+                    response.statusCode(), safeProviderCode(providerCode));
+            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                throw new WorkflowException(
+                        BAD_GATEWAY,
+                        "Cashfree rejected the credentials. Confirm CASHFREE_ENV matches the credentials "
+                                + "and that the Cashfree app is enabled.");
+            }
+            if (response.statusCode() == 400 && providerCode != null) {
+                throw new WorkflowException(
+                        BAD_GATEWAY,
+                        "Cashfree rejected the order (provider code: " + safeProviderCode(providerCode) + "). "
+                                + "Check the Cashfree account and order details.");
+            }
+            throw new WorkflowException(
+                    BAD_GATEWAY,
+                    "Cashfree order creation failed (HTTP " + response.statusCode()
+                            + ", provider code: " + safeProviderCode(providerCode) + ").");
         }
         return objectMapper.readTree(response.body());
     }
@@ -217,6 +229,10 @@ public class CashfreeService {
     private static String text(JsonNode node, String key, String fallback) {
         JsonNode value = node.get(key);
         return value != null && !value.isNull() ? value.asText(fallback) : fallback;
+    }
+
+    private static String safeProviderCode(String code) {
+        return code != null && code.matches("[A-Za-z0-9_-]{1,80}") ? code : "unavailable";
     }
 
     private static long decimalToPaise(String amount) {
