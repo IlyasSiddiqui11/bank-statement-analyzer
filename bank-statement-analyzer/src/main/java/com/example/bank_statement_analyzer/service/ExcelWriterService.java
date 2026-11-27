@@ -6,12 +6,16 @@ import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ExcelWriterService {
@@ -28,6 +32,8 @@ public class ExcelWriterService {
         totalStyle.setFont(boldFont);
 
         Sheet summarySheet = workbook.createSheet("Summary");
+        Set<String> usedSheetNames = new HashSet<>();
+        usedSheetNames.add("SUMMARY");
 
         Row titleRow = summarySheet.createRow(0);
 
@@ -114,8 +120,8 @@ public class ExcelWriterService {
                 );
             }
 
-            Sheet sheet =
-                    workbook.createSheet(groupName);
+            Sheet sheet = workbook.createSheet(
+                    createUniqueSheetName(groupName, usedSheetNames));
 
             Row headerRow = sheet.createRow(0);
 
@@ -278,6 +284,22 @@ public class ExcelWriterService {
         summarySheet.autoSizeColumn(4);
 
         return workbook;
+    }
+
+    private static String createUniqueSheetName(String requestedName, Set<String> usedNames) {
+        String baseName = WorkbookUtil.createSafeSheetName(requestedName);
+        if (baseName.isBlank()) {
+            baseName = "UNKNOWN";
+        }
+
+        String candidate = baseName;
+        int suffixNumber = 2;
+        while (!usedNames.add(candidate.toUpperCase(Locale.ROOT))) {
+            String suffix = " (" + suffixNumber++ + ")";
+            int baseLength = Math.min(baseName.length(), 31 - suffix.length());
+            candidate = baseName.substring(0, baseLength) + suffix;
+        }
+        return candidate;
     }
 
     private static class SummaryEntry {

@@ -58,14 +58,12 @@ public class ExcelReaderService {
                 Transaction transaction = new Transaction();
                 transaction.setDate(getDate(row.getCell(0)));
                 transaction.setChequeNumber(getStringValue(row.getCell(1)));
-                transaction.setParticulars(getStringValue(row.getCell(2)));
+                transaction.setParticulars(getOriginalStringValue(row.getCell(2)));
                 transaction.setDebit(getDoubleValue(row.getCell(3)));
                 transaction.setCredit(getDoubleValue(row.getCell(4)));
                 transaction.setBalance(getDoubleValue(row.getCell(5)));
 
-                if (transaction.getParticulars() != null
-                        && !transaction.getParticulars().isBlank()
-                        && (transaction.getDebit() != null || transaction.getCredit() != null)) {
+                if (transaction.getDebit() != null || transaction.getCredit() != null) {
                     transactions.add(transaction);
                 }
             }
@@ -82,6 +80,10 @@ public class ExcelReaderService {
         return cell.toString()
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private String getOriginalStringValue(Cell cell) {
+        return cell == null ? null : cell.toString();
     }
 
     private Double getDoubleValue(Cell cell) {

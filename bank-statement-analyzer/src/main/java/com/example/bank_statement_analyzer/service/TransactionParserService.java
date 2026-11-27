@@ -2,91 +2,79 @@ package com.example.bank_statement_analyzer.service;
 
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 public class TransactionParserService {
 
     public String extractName(String particulars) {
-
-        // Empty particulars
         if (particulars == null || particulars.isBlank()) {
             return "UNKNOWN";
         }
 
-        String[] parts = particulars.split("/");
+        String normalizedParticulars = particulars.trim();
+        String[] parts = normalizedParticulars.split("/", -1);
 
-        // --------------------------------------------------
-        // UPI P2A → Person
-        // --------------------------------------------------
-        if (parts.length >= 4 &&
-                parts[0].equalsIgnoreCase("UPI") &&
-                parts[1].equalsIgnoreCase("P2A")) {
+        if (parts.length >= 2 && normalize(parts[0]).equals("UPI")) {
+            String transactionType = normalize(parts[1]);
+            if ("P2P".equals(transactionType)
+                    || "P2A".equals(transactionType)
+                    || "P2M".equals(transactionType)) {
+                return extractUpiCounterparty(parts);
+            }
 
-            return parts[3].trim().toUpperCase();
+            if ("CRADJ".equals(transactionType)) {
+                return "CREDIT ADJUSTMENT";
+            }
         }
 
-        // --------------------------------------------------
-        // UPI P2M → Merchant
-        // --------------------------------------------------
-        if (parts.length >= 4 &&
-                parts[0].equalsIgnoreCase("UPI") &&
-                parts[1].equalsIgnoreCase("P2M")) {
-
-            return parts[3].trim().toUpperCase();
-        }
-
-        // --------------------------------------------------
-        // UPI Credit Adjustment
-        // --------------------------------------------------
-        if (parts.length >= 2 &&
-                parts[0].equalsIgnoreCase("UPI") &&
-                parts[1].equalsIgnoreCase("CRADJ")) {
-
-            return "CREDIT ADJUSTMENT";
-        }
-
-        // --------------------------------------------------
-        // ATM → ATM
-        // --------------------------------------------------
-        if (particulars.toUpperCase().contains("ATM")) {
+        if (normalizedParticulars.toUpperCase(Locale.ROOT).contains("ATM")) {
             return "ATM";
         }
 
-        // --------------------------------------------------
-        // NEFT → Person / Company
-        // --------------------------------------------------
-        if (parts.length >= 3 &&
-                parts[0].equalsIgnoreCase("NEFT")) {
-
-            return parts[2].trim().toUpperCase();
+        if (parts.length >= 3 && normalize(parts[0]).equals("NEFT")) {
+            return normalizeOrUnknown(parts[2]);
         }
 
         if (parts.length >= 3 &&
-                parts[0].equalsIgnoreCase("MOB") &&
-                parts[1].equalsIgnoreCase("TPFT")) {
-
-            return parts[2].trim().toUpperCase();
+                normalize(parts[0]).equals("MOB") &&
+                normalize(parts[1]).equals("TPFT")) {
+            return normalizeOrUnknown(parts[2]);
         }
 
-        if (particulars.toUpperCase().contains("INT.PD")) {
+        String upperParticulars = normalizedParticulars.toUpperCase(Locale.ROOT);
+        if (upperParticulars.contains("INT.PD")) {
             return "INTEREST";
         }
 
-        if (particulars.toUpperCase().contains("CARD CHARGES")) {
+        if (upperParticulars.contains("CARD CHARGES")) {
             return "BANK CHARGES";
         }
 
-        if (parts.length >= 2 &&
-                parts[0].equalsIgnoreCase("UPI") &&
-                parts[1].equalsIgnoreCase("CRADJ")) {
-
-            return "CREDIT ADJUSTMENT";
+        if (parts.length >= 5 && normalize(parts[0]).equals("IMPS")) {
+            return normalizeOrUnknown(parts[4]);
         }
-        if (parts.length >= 5 &&
-                parts[0].equalsIgnoreCase("IMPS")) {
 
-            return parts[4].trim().toUpperCase();
-        }
-        // Anything we don't recognize
         return "UNKNOWN";
+    }
+
+    private static String extractUpiCounterparty(String[] parts) {
+        if (parts.length < 4 || normalize(parts[2]).isEmpty()) {
+            return "UNKNOWN";
+        }
+
+        String counterparty = normalize(parts[3]);
+        return counterparty.isEmpty() ? "UNKNOWN" : counterparty;
+    }
+
+    private static String normalize(String value) {
+        return value == null
+                ? ""
+                : value.trim().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeOrUnknown(String value) {
+        String normalized = normalize(value);
+        return normalized.isEmpty() ? "UNKNOWN" : normalized;
     }
 }
