@@ -6,5 +6,6 @@ RUN chmod +x mvnw && ./mvnw -B clean package -DskipTests
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+ENV SPRING_PROFILES_ACTIVE=prod
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app/app.jar"]
